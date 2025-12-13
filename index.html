@@ -923,12 +923,12 @@
       100% { transform: rotate(360deg); }
     }
   </style>
-  <!-- Modal de nombre de usuario -->
+  <!-- Modal de correo de usuario -->
   <div id="modal-usuario">
     <div class="contenido">
       <h2>Editor Multiusuario</h2>
-      <p>Ingresá tu nombre para comenzar:</p>
-      <input type="text" id="input-usuario" placeholder="Tu nombre" maxlength="20" />
+      <p>Ingresá tu correo para comenzar:</p>
+      <input type="email" id="input-usuario" placeholder="tu@correo.com" />
       <br>
       <button onclick="conectarUsuario()">Conectar</button>
     </div>
@@ -1638,7 +1638,20 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('archivo-ejercicios').click();
         return;
       }
-      indice = sessionStorage.getItem("indice")? parseInt(sessionStorage.getItem("indice")) : 0;
+      // Priorizar el índice del servidor si existe, sino usar el de sessionStorage, sino 0
+      const indiceServidor = sessionStorage.getItem("indiceServidor");
+      if (indiceServidor !== null) {
+        const indiceServidorNum = parseInt(indiceServidor);
+        if (indiceServidorNum >= 0 && indiceServidorNum < ejercicios.length) {
+          indice = indiceServidorNum;
+          sessionStorage.removeItem("indiceServidor"); // Limpiar después de usarlo
+          console.log(`📚 Usando índice del servidor: ${indice}`);
+        } else {
+          indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
+        }
+      } else {
+        indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
+      }
       document.querySelector('button[onclick="siguiente()"]').style.display = "inline-block";
       document.querySelector('button[onclick="iniciar()"]').outerHTML = '<button onclick="anterior()">Anterior</button>';
        if (confirm("¿Querés pegar automáticamente tu código al abrir la validacion?")) {
@@ -1665,6 +1678,9 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('codigo-solucion').innerHTML = "";
         document.getElementById('solucion').style.display = "none";
         document.querySelector('button[onclick="siguiente()"]').style.display = "none";
+        sessionStorage.setItem("indice", indice);
+        // Sincronizar con el servidor
+        sincronizarIndiceEjercicio(indice);
       }
     }
   
@@ -1672,6 +1688,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (indice > 0) {
         indice--;
         mostrarEjercicio();
+        // mostrarEjercicio() ya sincroniza con el servidor
       }
     }
   
@@ -1692,6 +1709,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('input-ejercicio').value = indice + 1;
         document.getElementById('total-ejercicios').innerHTML = ejercicios.length;
         sessionStorage.setItem("indice", indice);
+        // Sincronizar con el servidor
+        sincronizarIndiceEjercicio(indice);
       }
     }
   
@@ -1737,6 +1756,7 @@ inputEjercicio.addEventListener("change", () => {
   if (!isNaN(nuevo) && nuevo >= 1 && nuevo <= ejercicios.length) {
     indice = nuevo - 1;
     mostrarEjercicio();
+    // mostrarEjercicio() ya sincroniza con el servidor
   } else {
     alert(`El número debe estar entre 1 y ${ejercicios.length}`);
     ///inputEjercicio.value = indice + 1;
@@ -3303,57 +3323,63 @@ document.addEventListener("keydown", function(e) {
   <script>
     // ========== FUNCIONES SOCKET.IO ==========
     
-    // ========== GESTIÓN DE NOMBRE DE USUARIO EN LOCALSTORAGE ==========
-    const NOMBRE_USUARIO_KEY = 'nombreUsuario';
-    const EXPIRACION_NOMBRE = 30 * 60 * 1000; // 30 minutos en milisegundos
+    // ========== GESTIÓN DE CORREO DE USUARIO EN LOCALSTORAGE ==========
+    const CORREO_USUARIO_KEY = 'correoUsuario';
+    const EXPIRACION_CORREO = 30 * 60 * 1000; // 30 minutos en milisegundos
     
-    // Guardar nombre de usuario con expiración de 30 minutos
-    function guardarNombreUsuario(nombre) {
-      const datos = {
-        nombre: nombre,
-        expiracion: Date.now() + EXPIRACION_NOMBRE
-      };
-      localStorage.setItem(NOMBRE_USUARIO_KEY, JSON.stringify(datos));
+    // Validar formato de correo
+    function validarCorreo(correo) {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(correo);
     }
     
-    // Obtener nombre de usuario guardado (si no ha expirado)
-    function obtenerNombreUsuario() {
+    // Guardar correo de usuario con expiración de 30 minutos
+    function guardarCorreoUsuario(correo) {
+      const datos = {
+        correo: correo,
+        expiracion: Date.now() + EXPIRACION_CORREO
+      };
+      localStorage.setItem(CORREO_USUARIO_KEY, JSON.stringify(datos));
+    }
+    
+    // Obtener correo de usuario guardado (si no ha expirado)
+    function obtenerCorreoUsuario() {
       try {
-        const datosStr = localStorage.getItem(NOMBRE_USUARIO_KEY);
+        const datosStr = localStorage.getItem(CORREO_USUARIO_KEY);
         if (!datosStr) return null;
         
         const datos = JSON.parse(datosStr);
         
         // Verificar si ha expirado
         if (Date.now() > datos.expiracion) {
-          localStorage.removeItem(NOMBRE_USUARIO_KEY);
+          localStorage.removeItem(CORREO_USUARIO_KEY);
           return null;
         }
         
-        return datos.nombre;
+        return datos.correo;
       } catch (error) {
-        console.error('Error al obtener nombre de usuario:', error);
-        localStorage.removeItem(NOMBRE_USUARIO_KEY);
+        console.error('Error al obtener correo de usuario:', error);
+        localStorage.removeItem(CORREO_USUARIO_KEY);
         return null;
       }
     }
     
-    // Limpiar nombre de usuario guardado
-    function limpiarNombreUsuario() {
-      localStorage.removeItem(NOMBRE_USUARIO_KEY);
+    // Limpiar correo de usuario guardado
+    function limpiarCorreoUsuario() {
+      localStorage.removeItem(CORREO_USUARIO_KEY);
       const inputUsuario = document.getElementById('input-usuario');
       if (inputUsuario) {
         inputUsuario.value = '';
       }
     }
     
-    // Cargar nombre guardado al iniciar la página y conectar automáticamente
-    function cargarNombreGuardado() {
-      const nombreGuardado = obtenerNombreUsuario();
-      if (nombreGuardado) {
+    // Cargar correo guardado al iniciar la página y conectar automáticamente
+    function cargarCorreoGuardado() {
+      const correoGuardado = obtenerCorreoUsuario();
+      if (correoGuardado) {
         const inputUsuario = document.getElementById('input-usuario');
         if (inputUsuario) {
-          inputUsuario.value = nombreGuardado;
+          inputUsuario.value = correoGuardado;
           // Conectar automáticamente después de un pequeño delay para asegurar que el DOM esté listo
           setTimeout(() => {
             conectarUsuario();
@@ -3362,25 +3388,30 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Listener para Alt + S para limpiar nombre guardado
+    // Listener para Alt + S para limpiar correo guardado
     document.addEventListener('keydown', (e) => {
       if (e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        limpiarNombreUsuario();
-        alert('Nombre de usuario guardado borrado. Podés ingresar un nuevo nombre.');
+        limpiarCorreoUsuario();
+        alert('Correo de usuario guardado borrado. Podés ingresar un nuevo correo.');
       }
     });
     
-    // Cargar nombre guardado cuando se carga la página
+    // Cargar correo guardado cuando se carga la página
     window.addEventListener('DOMContentLoaded', () => {
-      cargarNombreGuardado();
+      cargarCorreoGuardado();
     });
     
     function conectarUsuario() {
-      const nombreUsuario = document.getElementById('input-usuario').value.trim();
+      const correoUsuario = document.getElementById('input-usuario').value.trim();
       
-      if (!nombreUsuario) {
-        alert('Por favor ingresá tu nombre');
+      if (!correoUsuario) {
+        alert('Por favor ingresá tu correo');
+        return;
+      }
+      
+      if (!validarCorreo(correoUsuario)) {
+        alert('Por favor ingresá un correo válido');
         return;
       }
 
@@ -3436,10 +3467,10 @@ document.addEventListener("keydown", function(e) {
       console.log('🔗 URLs a intentar:', urlsToTry);
       
       // Intentar conectarse a cada URL en orden hasta que una funcione
-      intentarConectar(urlsToTry, 0, nombreUsuario);
+      intentarConectar(urlsToTry, 0, correoUsuario);
     }
 
-    function intentarConectar(urls, index, nombreUsuario) {
+    function intentarConectar(urls, index, correoUsuario) {
       if (index >= urls.length) {
         console.error('❌ No se pudo conectar a ningún servidor después de intentar todas las URLs');
         const urlsIntentadas = urls.join('\n- ');
@@ -3477,7 +3508,7 @@ document.addEventListener("keydown", function(e) {
           socket.disconnect();
           socket = null;
           // Intentar siguiente URL
-          intentarConectar(urls, index + 1, nombreUsuario);
+          intentarConectar(urls, index + 1, correoUsuario);
         }
       }, 10000);
 
@@ -3488,14 +3519,14 @@ document.addEventListener("keydown", function(e) {
         
         // Registrar listeners solo una vez cuando la conexión sea exitosa
         if (!socketListenersRegistrados) {
-          registrarSocketListeners(nombreUsuario);
+          registrarSocketListeners(correoUsuario);
           socketListenersRegistrados = true;
         }
         
         // Iniciar verificación periódica de conexión
         iniciarVerificacionConexion();
         
-        socket.emit('usuario-join', { username: nombreUsuario });
+        socket.emit('usuario-join', { username: correoUsuario });
       });
 
       socket.on('connect_error', (error) => {
@@ -3515,7 +3546,7 @@ document.addEventListener("keydown", function(e) {
         } else {
           // Intentar siguiente URL después de un pequeño delay
           setTimeout(() => {
-            intentarConectar(urls, index + 1, nombreUsuario);
+            intentarConectar(urls, index + 1, correoUsuario);
           }, 500);
         }
       });
@@ -3530,16 +3561,45 @@ document.addEventListener("keydown", function(e) {
       });
     }
 
+    // Función para enviar el índice de ejercicio al servidor
+    function sincronizarIndiceEjercicio(indiceEjercicio) {
+      if (socket && socket.connected && miUsuario) {
+        socket.emit('actualizar-indice-ejercicio', { indice: indiceEjercicio });
+        console.log(`📤 Índice sincronizado con servidor: ${indiceEjercicio}`);
+      }
+    }
+
     // Función para registrar todos los event listeners de socket (solo una vez)
-    function registrarSocketListeners(nombreUsuario) {
+    function registrarSocketListeners(correoUsuario) {
       if (!socket) return;
 
       socket.on('usuario-confirmado', (data) => {
         miUsuario = data.username;
         miColor = data.color;
         
-        // Guardar nombre de usuario con expiración de 30 minutos
-        guardarNombreUsuario(data.username);
+        // Guardar correo de usuario con expiración de 30 minutos
+        guardarCorreoUsuario(data.username);
+        
+        // Si hay un índice de ejercicio guardado, cargarlo
+        if (data.indiceEjercicio !== undefined) {
+          const indiceGuardado = data.indiceEjercicio;
+          // Si los ejercicios ya están cargados, actualizar el índice
+          if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+            if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+              indice = indiceGuardado;
+              sessionStorage.setItem("indice", indice);
+              console.log(`📚 Índice de ejercicio cargado desde servidor: ${indice}`);
+              // Si ya se iniciaron los ejercicios, mostrar el ejercicio guardado
+              if (document.querySelector('button[onclick="anterior()"]')) {
+                mostrarEjercicio();
+              }
+            }
+          } else {
+            // Si los ejercicios aún no están cargados, guardar el índice para usarlo después
+            sessionStorage.setItem("indiceServidor", indiceGuardado);
+            console.log(`📚 Índice de ejercicio guardado para cuando se carguen los ejercicios: ${indiceGuardado}`);
+          }
+        }
         
         // Verificar si el modal de reconexión está visible (indica que se estaba reconectando)
         const modalReconexion = document.getElementById('modal-reconexion');
@@ -3987,13 +4047,13 @@ document.addEventListener("keydown", function(e) {
             const modal = document.getElementById('modal-reconexion');
             if (modal && modal.style.display === 'flex' && (!socket || !socket.connected)) {
               console.log('🔄 Intentando reconectar automáticamente...');
-              // Obtener el nombre de usuario guardado o usar el actual
-              const nombreUsuario = obtenerNombreUsuario() || miUsuario;
-              if (nombreUsuario) {
+              // Obtener el correo de usuario guardado o usar el actual
+              const correoUsuario = obtenerCorreoUsuario() || miUsuario;
+              if (correoUsuario) {
                 // Simular el input para poder usar conectarUsuario
                 const inputUsuario = document.getElementById('input-usuario');
                 if (inputUsuario) {
-                  inputUsuario.value = nombreUsuario;
+                  inputUsuario.value = correoUsuario;
                 }
                 // Reconectar
                 conectarUsuario();

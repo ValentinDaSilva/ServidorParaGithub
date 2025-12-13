@@ -14,6 +14,46 @@ const isWin = process.platform === 'win32';
 const tempDir = "C:/Users/valed/Desktop/Repositorios/Servidor";
 const carpetaEjercicios = "C:/Users/valed/Desktop/Repositorios/Algoritmos-Y-Estructuras-De-Datos/Ejercicios";
 const MAX_OUTPUT_LENGTH = 100 * 1024;
+const archivoProgreso = path.join(__dirname, 'progreso-usuarios.json');
+
+// === Sistema de progreso por correo ===
+// Función para leer el archivo de progreso
+function leerProgreso() {
+  try {
+    if (fs.existsSync(archivoProgreso)) {
+      const contenido = fs.readFileSync(archivoProgreso, 'utf8');
+      return JSON.parse(contenido);
+    }
+  } catch (error) {
+    console.error('Error al leer el archivo de progreso:', error);
+  }
+  return {};
+}
+
+// Función para guardar el progreso
+function guardarProgreso(progreso) {
+  try {
+    fs.writeFileSync(archivoProgreso, JSON.stringify(progreso, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error('Error al guardar el archivo de progreso:', error);
+    return false;
+  }
+}
+
+// Función para obtener el índice de ejercicio de un correo
+function obtenerIndiceEjercicio(correo) {
+  const progreso = leerProgreso();
+  return progreso[correo] !== undefined ? progreso[correo] : 0;
+}
+
+// Función para actualizar el índice de ejercicio de un correo
+function actualizarIndiceEjercicio(correo, indice) {
+  const progreso = leerProgreso();
+  progreso[correo] = indice;
+  guardarProgreso(progreso);
+  console.log(`📝 Progreso actualizado: ${correo} -> ejercicio ${indice}`);
+}
 
 // Función para obtener la IP local (se usa en múltiples servidores)
 function obtenerIPLocal() {
@@ -229,10 +269,13 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('Usuario conectado:', socket.id);
 
-  // Cuando un usuario se une con nombre
+  // Cuando un usuario se une con correo
   socket.on('usuario-join', (data) => {
-    const { username } = data;
+    const { username } = data; // username ahora es el correo
     const color = generarColorAleatorio();
+    
+    // Obtener el índice de ejercicio guardado para este correo
+    const indiceEjercicio = obtenerIndiceEjercicio(username);
     
     usuariosConectados.set(socket.id, { username, color, pestañaActiva: null });
     
@@ -248,7 +291,8 @@ io.on('connection', (socket) => {
     socket.emit('usuario-confirmado', {
       username,
       color,
-      documentos: listaDocumentos
+      documentos: listaDocumentos,
+      indiceEjercicio: indiceEjercicio // Enviar el índice guardado
     });
 
     // Notificar a todos los demás usuarios
@@ -568,6 +612,20 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('colaboracion-desactivada-global');
     
     console.log(`Usuario ${usuarioInfo.username} (${socket.id}) desactivó la colaboración globalmente`);
+  });
+
+  // Cuando un usuario actualiza su índice de ejercicio
+  socket.on('actualizar-indice-ejercicio', (data) => {
+    const usuarioInfo = usuariosConectados.get(socket.id);
+    if (!usuarioInfo) return;
+    
+    const { indice } = data;
+    const correo = usuarioInfo.username; // El username es el correo
+    
+    if (typeof indice === 'number' && indice >= 0) {
+      actualizarIndiceEjercicio(correo, indice);
+      socket.emit('indice-actualizado', { indice, correo });
+    }
   });
 
   // Cuando un usuario elimina una pestaña
