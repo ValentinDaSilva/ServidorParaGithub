@@ -5787,6 +5787,9 @@ document.addEventListener("keydown", function(e) {
   // ============================================
   // Almacena el contenido copiado internamente (no se guarda en el portapapeles del sistema)
   let portapapelesInterno = '';
+  
+  // Variable para rastrear si se usó Ctrl+Alt (para permitir copiar/pegar normal)
+  let usarPortapapelesSistema = false;
 
   // Función para obtener el texto seleccionado de un elemento
   function obtenerTextoSeleccionado(elemento) {
@@ -5879,6 +5882,12 @@ document.addEventListener("keydown", function(e) {
 
   // Interceptar evento de copiar (Ctrl+C)
   document.addEventListener('copy', function(e) {
+    // Si se usó Ctrl+Alt+C, permitir el comportamiento normal
+    if (usarPortapapelesSistema) {
+      usarPortapapelesSistema = false; // Resetear la bandera
+      return; // No interceptar, dejar que se copie normalmente
+    }
+    
     const elemento = obtenerElementoActivo();
     if (!elemento) return;
 
@@ -5903,6 +5912,12 @@ document.addEventListener("keydown", function(e) {
 
   // Interceptar evento de cortar (Ctrl+X)
   document.addEventListener('cut', function(e) {
+    // Si se usó Ctrl+Alt+X, permitir el comportamiento normal
+    if (usarPortapapelesSistema) {
+      usarPortapapelesSistema = false; // Resetear la bandera
+      return; // No interceptar, dejar que se corte normalmente
+    }
+    
     const elemento = obtenerElementoActivo();
     if (!elemento) return;
 
@@ -5938,6 +5953,12 @@ document.addEventListener("keydown", function(e) {
 
   // Interceptar evento de pegar (Ctrl+V)
   document.addEventListener('paste', function(e) {
+    // Si se usó Ctrl+Alt+V, permitir el comportamiento normal
+    if (usarPortapapelesSistema) {
+      usarPortapapelesSistema = false; // Resetear la bandera
+      return; // No interceptar, dejar que se pegue normalmente
+    }
+    
     const elemento = obtenerElementoActivo();
     if (!elemento) return;
 
@@ -5956,7 +5977,37 @@ document.addEventListener("keydown", function(e) {
 
   // También interceptar atajos de teclado directamente (por si acaso)
   document.addEventListener('keydown', function(e) {
-    // Ctrl+C o Cmd+C
+    // Ctrl+Alt+C o Cmd+Alt+C - Usar portapapeles del sistema
+    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'c' && !e.shiftKey) {
+      usarPortapapelesSistema = true;
+      // Resetear la bandera después de un breve tiempo por si el evento no se dispara
+      setTimeout(() => { usarPortapapelesSistema = false; }, 100);
+      // No prevenir el evento, dejar que se copie normalmente
+      console.log('Ctrl+Alt+C detectado - usando portapapeles del sistema');
+      return;
+    }
+    
+    // Ctrl+Alt+V o Cmd+Alt+V - Usar portapapeles del sistema
+    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'v' && !e.shiftKey) {
+      usarPortapapelesSistema = true;
+      // Resetear la bandera después de un breve tiempo por si el evento no se dispara
+      setTimeout(() => { usarPortapapelesSistema = false; }, 100);
+      // No prevenir el evento, dejar que se pegue normalmente
+      console.log('Ctrl+Alt+V detectado - usando portapapeles del sistema');
+      return;
+    }
+    
+    // Ctrl+Alt+X o Cmd+Alt+X - Usar portapapeles del sistema
+    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'x' && !e.shiftKey) {
+      usarPortapapelesSistema = true;
+      // Resetear la bandera después de un breve tiempo por si el evento no se dispara
+      setTimeout(() => { usarPortapapelesSistema = false; }, 100);
+      // No prevenir el evento, dejar que se corte normalmente
+      console.log('Ctrl+Alt+X detectado - usando portapapeles del sistema');
+      return;
+    }
+    
+    // Ctrl+C o Cmd+C (sin Alt) - Usar portapapeles interno
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -5970,7 +6021,7 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Ctrl+X o Cmd+X
+    // Ctrl+X o Cmd+X (sin Alt) - Usar portapapeles interno
     if ((e.ctrlKey || e.metaKey) && e.key === 'x' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -5995,7 +6046,7 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Ctrl+V o Cmd+V
+    // Ctrl+V o Cmd+V (sin Alt) - Usar portapapeles interno
     if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
