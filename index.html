@@ -5794,6 +5794,24 @@ document.addEventListener("keydown", function(e) {
   let timestampPortapapelesSistema = 0;
   let accionPortapapelesSistema = ''; // 'copy', 'paste', 'cut', o ''
 
+  // Función auxiliar para copiar usando execCommand (fallback)
+  function copiarConExecCommand(texto) {
+    const textArea = document.createElement('textarea');
+    textArea.value = texto;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      console.log('Texto copiado al portapapeles del sistema usando execCommand');
+    } catch (err) {
+      console.error('Error al copiar con execCommand:', err);
+    }
+    document.body.removeChild(textArea);
+  }
+
   // Función para obtener el texto seleccionado de un elemento
   function obtenerTextoSeleccionado(elemento) {
     if (elemento instanceof CodeMirror) {
@@ -6021,15 +6039,33 @@ document.addEventListener("keydown", function(e) {
     // Ctrl+Shift+C o Cmd+Shift+C - Usar portapapeles del sistema
     // Prevenir que abra el inspector del navegador
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'c' && !e.altKey) {
-      usarPortapapelesSistema = true;
-      accionPortapapelesSistema = 'copy';
-      timestampPortapapelesSistema = Date.now();
       // Prevenir el comportamiento por defecto del navegador (abrir inspector)
-      // pero permitir que el evento copy se dispare
       e.preventDefault();
-      console.log('Ctrl+Shift+C detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
-      // El evento copy se disparará naturalmente después de este keydown
-      // No usar stopPropagation para permitir que el evento copy se dispare
+      e.stopPropagation();
+      
+      const elemento = obtenerElementoActivo();
+      if (elemento) {
+        const textoSeleccionado = obtenerTextoSeleccionado(elemento);
+        if (textoSeleccionado) {
+          console.log('Ctrl+Shift+C detectado - copiando al portapapeles del sistema');
+          
+          // Usar la API del portapapeles para copiar directamente
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textoSeleccionado).then(() => {
+              console.log('Texto copiado al portapapeles del sistema exitosamente');
+            }).catch((err) => {
+              console.error('Error al copiar al portapapeles:', err);
+              // Fallback: usar execCommand
+              copiarConExecCommand(textoSeleccionado);
+            });
+          } else {
+            // Fallback para navegadores que no soportan Clipboard API
+            copiarConExecCommand(textoSeleccionado);
+          }
+        } else {
+          console.log('No hay texto seleccionado para copiar');
+        }
+      }
       return;
     }
     
