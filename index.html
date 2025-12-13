@@ -1774,7 +1774,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-let tipoPlantilla = 'cpp'; // Puede ser 'cpp', 'vector', o 'lista'
+let tipoPlantilla = 'cpp'; // Puede ser 'cpp', 'vector', 'matriz', o 'lista'
   
     // Plantilla básica C++
     const PLANTILLA_CPP = `#include <iostream>
@@ -1817,6 +1817,42 @@ void mostrarVector(int v[], int TL) {
         cout << v[i] << " ";
     }
     cout << "]"<<endl;
+}`;
+
+const PLANTILLA_MATRIZ = `#include <iostream>
+#include <ctime>
+#define TF 100
+using namespace std;
+
+void mostrarMatriz(int [][TF], int, int);
+void cargarAleatorio(int[][TF], int, int, int = 100);
+
+int main(){
+    
+    return 0;
+}
+
+
+
+
+
+void cargarAleatorio(int m[][TF], int filas, int cols, int maximo){
+    int minimo = maximo / 10; // ejemplo: si maximo = 100 → minimo = 10
+    
+    for(int i = 0; i < filas; i++){
+        for(int j = 0; j < cols; j++){
+            m[i][j] = minimo + rand() % (maximo - minimo);
+        }
+    }
+}
+
+void mostrarMatriz(int m[][TF], int filas, int cols) {
+    for(int i = 0; i < filas; i++) {
+        for(int j = 0; j < cols; j++) {
+            cout << m[i][j] << " ";
+        }
+        cout << endl;
+    }
 }`;
 
 const PLANTILLA_LISTA_ENLAZADA = `#include <iostream>
@@ -1914,6 +1950,8 @@ function obtenerPlantillaActual() {
     switch(tipoPlantilla) {
         case 'vector':
             return PLANTILLA_VECTOR;
+        case 'matriz':
+            return PLANTILLA_MATRIZ;
         case 'lista':
             return PLANTILLA_LISTA_ENLAZADA;
         default:
@@ -3039,10 +3077,12 @@ let posicionCursorEditor = null;
 document.addEventListener("keydown", function(e) {
   if (e.key === "F11" || e.code === "F11") {
     e.preventDefault();
-    // Ciclar entre las tres plantillas: cpp -> vector -> lista -> cpp
+    // Ciclar entre las cuatro plantillas: cpp -> vector -> matriz -> lista -> cpp
     if (tipoPlantilla === 'cpp') {
       tipoPlantilla = 'vector';
     } else if (tipoPlantilla === 'vector') {
+      tipoPlantilla = 'matriz';
+    } else if (tipoPlantilla === 'matriz') {
       tipoPlantilla = 'lista';
     } else {
       tipoPlantilla = 'cpp';
@@ -3640,7 +3680,7 @@ document.addEventListener("keydown", function(e) {
             sincronizando = true;
             editorData.editorInstance.setValue(codigoServidor);
             editorData.codigo = codigoServidor;
-          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
+          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR || codigoActual === PLANTILLA_MATRIZ || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
             // Solo establecer plantilla si el servidor está vacío Y el editor también está vacío o tiene plantilla
             sincronizando = true;
             editorData.editorInstance.setValue(obtenerPlantillaActual());
@@ -4002,6 +4042,7 @@ document.addEventListener("keydown", function(e) {
                 codigoActual.trim() !== '' && 
                 codigoActual !== PLANTILLA_CPP && 
                 codigoActual !== PLANTILLA_VECTOR &&
+                codigoActual !== PLANTILLA_MATRIZ &&
                 codigoActual !== PLANTILLA_LISTA_ENLAZADA) {
               codigoGuardadoAntesDesconexion.set(tabId, codigoActual);
               console.log(`💾 Código guardado para pestaña ${tabId} antes de desconexión`);
