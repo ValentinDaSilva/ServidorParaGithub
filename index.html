@@ -6019,12 +6019,17 @@ document.addEventListener("keydown", function(e) {
     const tecla = e.key.toLowerCase();
     
     // Ctrl+Shift+C o Cmd+Shift+C - Usar portapapeles del sistema
+    // Prevenir que abra el inspector del navegador
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'c' && !e.altKey) {
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'copy';
       timestampPortapapelesSistema = Date.now();
-      // No prevenir el evento, dejar que se copie normalmente
+      // Prevenir el comportamiento por defecto del navegador (abrir inspector)
+      // pero permitir que el evento copy se dispare
+      e.preventDefault();
       console.log('Ctrl+Shift+C detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
+      // El evento copy se disparará naturalmente después de este keydown
+      // No usar stopPropagation para permitir que el evento copy se dispare
       return;
     }
     
