@@ -1774,7 +1774,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-let usarPlantillaVector = false;
+let tipoPlantilla = 'cpp'; // Puede ser 'cpp', 'vector', o 'lista'
   
     // Plantilla básica C++
     const PLANTILLA_CPP = `#include <iostream>
@@ -1818,6 +1818,108 @@ void mostrarVector(int v[], int TL) {
     }
     cout << "]"<<endl;
 }`;
+
+const PLANTILLA_LISTA_ENLAZADA = `#include <iostream>
+
+using namespace std;
+
+
+
+struct Nodo {
+
+    int dato;
+
+    Nodo* sig;
+
+};
+
+
+
+typedef Nodo* NodoPtr;
+
+
+
+void cargarLista(NodoPtr&, int);
+
+void mostrarLista(NodoPtr);
+
+
+
+int main() {
+
+    NodoPtr nodoPadre = NULL;
+
+    int dato;
+
+
+
+    while (cin >> dato) {
+
+        cargarLista(nodoPadre, dato);
+
+    }
+
+
+
+    mostrarLista(nodoPadre);
+
+
+
+    return 0;
+
+}
+
+
+
+
+
+void cargarLista(NodoPtr& nodoPadre, int dato) {
+
+    if(nodoPadre == NULL) {
+
+        NodoPtr nuevoNodo = new Nodo;
+
+        nuevoNodo->dato = dato;
+
+        nuevoNodo->sig = NULL;
+
+        nodoPadre = nuevoNodo;
+
+    }else{
+
+        cargarLista(nodoPadre->sig, dato);
+
+    }
+
+}
+
+
+
+void mostrarLista(NodoPtr nodoPadre) {
+
+    if(nodoPadre == NULL) {
+
+        cout<<"NULL"<<endl;
+
+    }else{
+
+        cout<<nodoPadre->dato<<" -> ";
+
+    }
+
+}`;
+
+// Función auxiliar para obtener la plantilla actual
+function obtenerPlantillaActual() {
+    switch(tipoPlantilla) {
+        case 'vector':
+            return PLANTILLA_VECTOR;
+        case 'lista':
+            return PLANTILLA_LISTA_ENLAZADA;
+        default:
+            return PLANTILLA_CPP;
+    }
+}
   
     // Configuración y creación del editor CodeMirror
     let editorInstance;
@@ -2166,7 +2268,7 @@ function toggleEditor() {
       if (!editorActivo) return;
 
       if (confirm("¿Querés borrar tu código actual y volver a la plantilla inicial?")) {
-        editorActivo.setValue((usarPlantillaVector)?PLANTILLA_VECTOR:PLANTILLA_CPP);
+        editorActivo.setValue(obtenerPlantillaActual());
         const inputArea = document.querySelector(`.input-area[data-tab-id="${pestañaActiva}"]`);
         const outputContent = document.querySelector(`.output[data-tab-id="${pestañaActiva}"] .output-content`);
         if (inputArea) inputArea.value = "";
@@ -2937,7 +3039,14 @@ let posicionCursorEditor = null;
 document.addEventListener("keydown", function(e) {
   if (e.key === "F11" || e.code === "F11") {
     e.preventDefault();
-    usarPlantillaVector = !usarPlantillaVector;
+    // Ciclar entre las tres plantillas: cpp -> vector -> lista -> cpp
+    if (tipoPlantilla === 'cpp') {
+      tipoPlantilla = 'vector';
+    } else if (tipoPlantilla === 'vector') {
+      tipoPlantilla = 'lista';
+    } else {
+      tipoPlantilla = 'cpp';
+    }
   }
 });
 
@@ -3531,10 +3640,10 @@ document.addEventListener("keydown", function(e) {
             sincronizando = true;
             editorData.editorInstance.setValue(codigoServidor);
             editorData.codigo = codigoServidor;
-          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR)) {
+          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
             // Solo establecer plantilla si el servidor está vacío Y el editor también está vacío o tiene plantilla
             sincronizando = true;
-            editorData.editorInstance.setValue((usarPlantillaVector) ? PLANTILLA_VECTOR : PLANTILLA_CPP);
+            editorData.editorInstance.setValue(obtenerPlantillaActual());
             editorData.codigo = editorData.editorInstance.getValue();
           }
           
@@ -3892,7 +4001,8 @@ document.addEventListener("keydown", function(e) {
             if (codigoActual && 
                 codigoActual.trim() !== '' && 
                 codigoActual !== PLANTILLA_CPP && 
-                codigoActual !== PLANTILLA_VECTOR) {
+                codigoActual !== PLANTILLA_VECTOR &&
+                codigoActual !== PLANTILLA_LISTA_ENLAZADA) {
               codigoGuardadoAntesDesconexion.set(tabId, codigoActual);
               console.log(`💾 Código guardado para pestaña ${tabId} antes de desconexión`);
             }
@@ -3904,7 +4014,7 @@ document.addEventListener("keydown", function(e) {
           if (editorData && editorData.editorInstance) {
             // Vaciar el editor
             sincronizando = true; // Evitar que se sincronice con el servidor
-            editorData.editorInstance.setValue((usarPlantillaVector) ? PLANTILLA_VECTOR : PLANTILLA_CPP);
+            editorData.editorInstance.setValue(obtenerPlantillaActual());
             editorData.codigo = editorData.editorInstance.getValue();
             // Limpiar historial de undo/redo para que no pueda restaurar con Ctrl+Z
             editorData.editorInstance.clearHistory();
@@ -4123,7 +4233,7 @@ document.addEventListener("keydown", function(e) {
           editorInstance.setValue(codigoDelDocumento);
         } else {
           // Si no hay código del servidor, usar plantilla
-          editorInstance.setValue((usarPlantillaVector) ? PLANTILLA_VECTOR : PLANTILLA_CPP);
+          editorInstance.setValue(obtenerPlantillaActual());
         }
         
         // Guardar datos del editor
@@ -4556,7 +4666,7 @@ document.addEventListener("keydown", function(e) {
                 editorInstance.setValue(codigoDelDocumento);
               } else if (!codigoInicial || codigoInicial.trim() === '') {
                 // Solo usar plantilla si no hay código del servidor ni código inicial
-                editorInstance.setValue((usarPlantillaVector) ? PLANTILLA_VECTOR : PLANTILLA_CPP);
+                editorInstance.setValue(obtenerPlantillaActual());
               }
               
               if (!editorData) {
