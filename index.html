@@ -1856,96 +1856,51 @@ void mostrarMatriz(int m[][TF], int filas, int cols) {
 }`;
 
 const PLANTILLA_LISTA_ENLAZADA = `#include <iostream>
-
 using namespace std;
 
-
-
 struct Nodo {
-
     int dato;
-
     Nodo* sig;
-
 };
-
-
 
 typedef Nodo* NodoPtr;
 
-
-
 void cargarLista(NodoPtr&, int);
-
 void mostrarLista(NodoPtr);
 
-
-
 int main() {
-
     NodoPtr nodoPadre = NULL;
-
     int dato;
 
-
-
     while (cin >> dato) {
-
         cargarLista(nodoPadre, dato);
 
     }
 
-
-
     mostrarLista(nodoPadre);
 
-
-
     return 0;
-
 }
-
-
-
-
 
 void cargarLista(NodoPtr& nodoPadre, int dato) {
-
     if(nodoPadre == NULL) {
-
         NodoPtr nuevoNodo = new Nodo;
-
         nuevoNodo->dato = dato;
-
         nuevoNodo->sig = NULL;
-
         nodoPadre = nuevoNodo;
-
     }else{
-
         cargarLista(nodoPadre->sig, dato);
-
     }
-
 }
 
-
-
 void mostrarLista(NodoPtr nodoPadre) {
-
     if(nodoPadre == NULL) {
-
         cout<<"NULL"<<endl;
-
     }else{
-
         cout<<nodoPadre->dato<<" -> ";
-
     }
-
 }`;
 
-// Función auxiliar para obtener la plantilla actual
 function obtenerPlantillaActual() {
     switch(tipoPlantilla) {
         case 'vector':
