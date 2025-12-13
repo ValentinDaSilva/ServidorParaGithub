@@ -6349,16 +6349,9 @@ document.addEventListener("keydown", function(e) {
     }
   });
 
-  // Limpiar también cuando se oculta la pestaña/ventana (visibilitychange)
-  // Esto previene que se puedan ver los ejercicios desde el inspector cuando se cambia de pestaña
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-      // La página se ocultó, limpiar ejercicios para seguridad
-      if (typeof limpiarEjercicios === 'function') {
-        limpiarEjercicios();
-      }
-    }
-  });
+  // NOTA: No se limpian los ejercicios al cambiar de pestaña (visibilitychange)
+  // Solo se limpian cuando se pierde la conexión a internet (evento 'offline')
+  // o cuando se cierra/recarga la página (beforeunload/pagehide)
   
   </script>  
 </body>
