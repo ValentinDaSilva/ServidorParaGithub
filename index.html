@@ -3087,6 +3087,24 @@ document.addEventListener("keydown", function(e) {
     } else {
       tipoPlantilla = 'cpp';
     }
+    
+    // Aplicar la nueva plantilla al editor si está abierto y el código actual es una plantilla o está vacío
+    const overlay = document.getElementById("editor-overlay");
+    if (overlay && overlay.style.display === "flex" && pestañaActiva) {
+      const editorData = editoresPorPestaña.get(pestañaActiva);
+      if (editorData && editorData.editorInstance) {
+        const editorActivo = editorData.editorInstance;
+        const codigoActual = editorActivo.getValue();
+        // Solo aplicar si el código está vacío o es una de las plantillas
+        if (codigoActual.trim() === '' || 
+            codigoActual === PLANTILLA_CPP || 
+            codigoActual === PLANTILLA_VECTOR || 
+            codigoActual === PLANTILLA_MATRIZ || 
+            codigoActual === PLANTILLA_LISTA_ENLAZADA) {
+          editorActivo.setValue(obtenerPlantillaActual());
+        }
+      }
+    }
   }
 });
 
