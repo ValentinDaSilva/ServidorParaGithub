@@ -5885,12 +5885,12 @@ document.addEventListener("keydown", function(e) {
 
   // Interceptar evento de copiar (Ctrl+C)
   document.addEventListener('copy', function(e) {
-    // Si se usó Ctrl+Alt+C recientemente (en los últimos 500ms), permitir el comportamiento normal
+    // Si se usó Ctrl+Shift+C recientemente (en los últimos 500ms), permitir el comportamiento normal
     const tiempoTranscurrido = Date.now() - timestampPortapapelesSistema;
     console.log('Evento copy detectado. Bandera:', usarPortapapelesSistema, 'Acción:', accionPortapapelesSistema, 'Tiempo transcurrido:', tiempoTranscurrido);
     
     if (usarPortapapelesSistema && accionPortapapelesSistema === 'copy' && tiempoTranscurrido < 500) {
-      console.log('Permitiendo copiado normal del sistema (Ctrl+Alt+C) - NO interceptando');
+      console.log('Permitiendo copiado normal del sistema (Ctrl+Shift+C) - NO interceptando');
       usarPortapapelesSistema = false; // Resetear la bandera
       accionPortapapelesSistema = '';
       timestampPortapapelesSistema = 0;
@@ -5926,12 +5926,12 @@ document.addEventListener("keydown", function(e) {
 
   // Interceptar evento de cortar (Ctrl+X)
   document.addEventListener('cut', function(e) {
-    // Si se usó Ctrl+Alt+X recientemente (en los últimos 500ms), permitir el comportamiento normal
+    // Si se usó Ctrl+Shift+X recientemente (en los últimos 500ms), permitir el comportamiento normal
     const tiempoTranscurrido = Date.now() - timestampPortapapelesSistema;
     console.log('Evento cut detectado. Bandera:', usarPortapapelesSistema, 'Acción:', accionPortapapelesSistema, 'Tiempo transcurrido:', tiempoTranscurrido);
     
     if (usarPortapapelesSistema && accionPortapapelesSistema === 'cut' && tiempoTranscurrido < 500) {
-      console.log('Permitiendo cortado normal del sistema (Ctrl+Alt+X) - NO interceptando');
+      console.log('Permitiendo cortado normal del sistema (Ctrl+Shift+X) - NO interceptando');
       usarPortapapelesSistema = false; // Resetear la bandera
       accionPortapapelesSistema = '';
       timestampPortapapelesSistema = 0;
@@ -5978,12 +5978,12 @@ document.addEventListener("keydown", function(e) {
 
   // Interceptar evento de pegar (Ctrl+V)
   document.addEventListener('paste', function(e) {
-    // Si se usó Ctrl+Alt+V recientemente (en los últimos 500ms), permitir el comportamiento normal
+    // Si se usó Ctrl+Shift+V recientemente (en los últimos 500ms), permitir el comportamiento normal
     const tiempoTranscurrido = Date.now() - timestampPortapapelesSistema;
     console.log('Evento paste detectado. Bandera:', usarPortapapelesSistema, 'Acción:', accionPortapapelesSistema, 'Tiempo transcurrido:', tiempoTranscurrido);
     
     if (usarPortapapelesSistema && accionPortapapelesSistema === 'paste' && tiempoTranscurrido < 500) {
-      console.log('Permitiendo pegado normal del sistema (Ctrl+Alt+V) - NO interceptando');
+      console.log('Permitiendo pegado normal del sistema (Ctrl+Shift+V) - NO interceptando');
       usarPortapapelesSistema = false; // Resetear la bandera
       accionPortapapelesSistema = '';
       timestampPortapapelesSistema = 0;
@@ -6018,38 +6018,38 @@ document.addEventListener("keydown", function(e) {
     // Normalizar la tecla para evitar problemas de mayúsculas/minúsculas
     const tecla = e.key.toLowerCase();
     
-    // Ctrl+Alt+C o Cmd+Alt+C - Usar portapapeles del sistema
-    if ((e.ctrlKey || e.metaKey) && e.altKey && tecla === 'c' && !e.shiftKey) {
+    // Ctrl+Shift+C o Cmd+Shift+C - Usar portapapeles del sistema
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'c' && !e.altKey) {
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'copy';
       timestampPortapapelesSistema = Date.now();
       // No prevenir el evento, dejar que se copie normalmente
-      console.log('Ctrl+Alt+C detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
+      console.log('Ctrl+Shift+C detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
       return;
     }
     
-    // Ctrl+Alt+V o Cmd+Alt+V - Usar portapapeles del sistema
-    if ((e.ctrlKey || e.metaKey) && e.altKey && tecla === 'v' && !e.shiftKey) {
+    // Ctrl+Shift+V o Cmd+Shift+V - Usar portapapeles del sistema
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'v' && !e.altKey) {
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'paste';
       timestampPortapapelesSistema = Date.now();
       // No prevenir el evento, dejar que se pegue normalmente
-      console.log('Ctrl+Alt+V detectado en keydown - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
+      console.log('Ctrl+Shift+V detectado en keydown - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
       return;
     }
     
-    // Ctrl+Alt+X o Cmd+Alt+X - Usar portapapeles del sistema
-    if ((e.ctrlKey || e.metaKey) && e.altKey && tecla === 'x' && !e.shiftKey) {
+    // Ctrl+Shift+X o Cmd+Shift+X - Usar portapapeles del sistema
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'x' && !e.altKey) {
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'cut';
       timestampPortapapelesSistema = Date.now();
       // No prevenir el evento, dejar que se corte normalmente
-      console.log('Ctrl+Alt+X detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
+      console.log('Ctrl+Shift+X detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
       return;
     }
     
-    // Ctrl+C o Cmd+C (sin Alt) - Usar portapapeles interno
-    // IMPORTANTE: Verificar que Alt NO esté presionado para evitar conflictos con Ctrl+Alt+C
+    // Ctrl+C o Cmd+C (sin Shift) - Usar portapapeles interno
+    // IMPORTANTE: Verificar que Shift NO esté presionado para evitar conflictos con Ctrl+Shift+C
     if ((e.ctrlKey || e.metaKey) && tecla === 'c' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -6063,8 +6063,8 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Ctrl+X o Cmd+X (sin Alt) - Usar portapapeles interno
-    // IMPORTANTE: Verificar que Alt NO esté presionado para evitar conflictos con Ctrl+Alt+X
+    // Ctrl+X o Cmd+X (sin Shift) - Usar portapapeles interno
+    // IMPORTANTE: Verificar que Shift NO esté presionado para evitar conflictos con Ctrl+Shift+X
     if ((e.ctrlKey || e.metaKey) && tecla === 'x' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -6089,8 +6089,8 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Ctrl+V o Cmd+V (sin Alt) - Usar portapapeles interno
-    // IMPORTANTE: Verificar que Alt NO esté presionado para evitar conflictos con Ctrl+Alt+V
+    // Ctrl+V o Cmd+V (sin Shift) - Usar portapapeles interno
+    // IMPORTANTE: Verificar que Shift NO esté presionado para evitar conflictos con Ctrl+Shift+V
     if ((e.ctrlKey || e.metaKey) && tecla === 'v' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
