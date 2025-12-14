@@ -1541,6 +1541,14 @@
               if (loader) loader.style.display = "none";
               console.log(`✅ Ejercicios cargados desde servidor: ${nombreArchivo}`, ejerciciosCargados);
               
+              // Limpiar índices que no correspondan a este archivo
+              const nombreArchivoIndiceServidor = sessionStorage.getItem("nombreArchivoIndiceServidor");
+              if (nombreArchivoIndiceServidor && nombreArchivoIndiceServidor !== nombreArchivo) {
+                sessionStorage.removeItem("indiceServidor");
+                sessionStorage.removeItem("nombreArchivoIndiceServidor");
+                console.log(`🔄 Limpiando índice del servidor porque el archivo cambió de "${nombreArchivoIndiceServidor}" a "${nombreArchivo}"`);
+              }
+              
               // Ejecutar el código que estaba en el .then()
               if(inputArchivo) inputArchivo.style.display = "none";
               if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
@@ -1606,6 +1614,7 @@
   // Limpiar archivo seleccionado guardado
   function limpiarArchivoSeleccionado() {
     localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
+    nombreArchivoActual = null; // También limpiar la variable global
   }
 
   // Intentar cargar ejercicios.js desde servidor localhost (función original mantenida por compatibilidad)
@@ -1709,15 +1718,39 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('archivo-ejercicios').click();
         return;
       }
-      // Priorizar el índice del servidor si existe, sino usar el de sessionStorage, sino 0
+      // Priorizar el índice del servidor si existe y corresponde al archivo actual
       const indiceServidor = sessionStorage.getItem("indiceServidor");
+      const nombreArchivoIndiceServidor = sessionStorage.getItem("nombreArchivoIndiceServidor");
+      const archivoActual = nombreArchivoActual || (obtenerArchivoSeleccionado() ? obtenerArchivoSeleccionado().nombreArchivo : null);
+      
       if (indiceServidor !== null) {
-        const indiceServidorNum = parseInt(indiceServidor);
-        if (indiceServidorNum >= 0 && indiceServidorNum < ejercicios.length) {
-          indice = indiceServidorNum;
-          sessionStorage.removeItem("indiceServidor"); // Limpiar después de usarlo
-          console.log(`📚 Usando índice del servidor: ${indice}`);
+        // Verificar que el índice corresponda al archivo actual
+        if (nombreArchivoIndiceServidor && nombreArchivoIndiceServidor === archivoActual) {
+          const indiceServidorNum = parseInt(indiceServidor);
+          if (indiceServidorNum >= 0 && indiceServidorNum < ejercicios.length) {
+            indice = indiceServidorNum;
+            sessionStorage.removeItem("indiceServidor"); // Limpiar después de usarlo
+            sessionStorage.removeItem("nombreArchivoIndiceServidor"); // Limpiar también el nombre del archivo
+            console.log(`📚 Usando índice del servidor: ${indice} para archivo: ${archivoActual}`);
+          } else {
+            indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
+          }
+        } else if (!nombreArchivoIndiceServidor || !archivoActual) {
+          // Compatibilidad: si no hay verificación de archivo, usar el índice
+          const indiceServidorNum = parseInt(indiceServidor);
+          if (indiceServidorNum >= 0 && indiceServidorNum < ejercicios.length) {
+            indice = indiceServidorNum;
+            sessionStorage.removeItem("indiceServidor");
+            sessionStorage.removeItem("nombreArchivoIndiceServidor");
+            console.log(`📚 Usando índice del servidor (sin verificación de archivo): ${indice}`);
+          } else {
+            indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
+          }
         } else {
+          // Los archivos no coinciden, no usar el índice del servidor
+          console.log(`⚠️ El índice del servidor es para "${nombreArchivoIndiceServidor}" pero el archivo actual es "${archivoActual}". No se usará.`);
+          sessionStorage.removeItem("indiceServidor");
+          sessionStorage.removeItem("nombreArchivoIndiceServidor");
           indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
         }
       } else {
@@ -3662,24 +3695,51 @@ document.addEventListener("keydown", function(e) {
         // Guardar correo de usuario con expiración de 30 minutos
         guardarCorreoUsuario(data.username);
         
-        // Si hay un índice de ejercicio guardado, cargarlo
+        // Si hay un índice de ejercicio guardado, solo usarlo si corresponde al archivo actual
         if (data.indiceEjercicio !== undefined) {
           const indiceGuardado = data.indiceEjercicio;
-          // Si los ejercicios ya están cargados, actualizar el índice
-          if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
-            if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
-              indice = indiceGuardado;
-              sessionStorage.setItem("indice", indice);
-              console.log(`📚 Índice de ejercicio cargado desde servidor: ${indice}`);
-              // Si ya se iniciaron los ejercicios, mostrar el ejercicio guardado
-              if (document.querySelector('button[onclick="anterior()"]')) {
-                mostrarEjercicio();
+          const nombreArchivoDelIndice = data.nombreArchivo;
+          
+          // Verificar que el índice corresponda al archivo actual
+          const archivoActual = nombreArchivoActual || (obtenerArchivoSeleccionado() ? obtenerArchivoSeleccionado().nombreArchivo : null);
+          
+          if (nombreArchivoDelIndice && nombreArchivoDelIndice === archivoActual) {
+            // Los archivos coinciden, podemos usar el índice
+            // Si los ejercicios ya están cargados, actualizar el índice
+            if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+              if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+                indice = indiceGuardado;
+                sessionStorage.setItem("indice", indice);
+                console.log(`📚 Índice de ejercicio cargado desde servidor: ${indice} para archivo: ${nombreArchivoDelIndice}`);
+                // Si ya se iniciaron los ejercicios, mostrar el ejercicio guardado
+                if (document.querySelector('button[onclick="anterior()"]')) {
+                  mostrarEjercicio();
+                }
               }
+            } else {
+              // Si los ejercicios aún no están cargados, guardar el índice para usarlo después
+              sessionStorage.setItem("indiceServidor", indiceGuardado);
+              sessionStorage.setItem("nombreArchivoIndiceServidor", nombreArchivoDelIndice);
+              console.log(`📚 Índice de ejercicio guardado para cuando se carguen los ejercicios: ${indiceGuardado} para archivo: ${nombreArchivoDelIndice}`);
+            }
+          } else if (!nombreArchivoDelIndice || !archivoActual) {
+            // Si no hay nombreArchivo, usar el índice (compatibilidad con formato antiguo)
+            if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+              if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+                indice = indiceGuardado;
+                sessionStorage.setItem("indice", indice);
+                console.log(`📚 Índice de ejercicio cargado desde servidor (sin verificación de archivo): ${indice}`);
+                if (document.querySelector('button[onclick="anterior()"]')) {
+                  mostrarEjercicio();
+                }
+              }
+            } else {
+              sessionStorage.setItem("indiceServidor", indiceGuardado);
+              console.log(`📚 Índice de ejercicio guardado (sin verificación de archivo): ${indiceGuardado}`);
             }
           } else {
-            // Si los ejercicios aún no están cargados, guardar el índice para usarlo después
-            sessionStorage.setItem("indiceServidor", indiceGuardado);
-            console.log(`📚 Índice de ejercicio guardado para cuando se carguen los ejercicios: ${indiceGuardado}`);
+            // Los archivos no coinciden, no usar el índice
+            console.log(`⚠️ El índice recibido es para el archivo "${nombreArchivoDelIndice}" pero el archivo actual es "${archivoActual}". No se usará el índice guardado.`);
           }
         }
         

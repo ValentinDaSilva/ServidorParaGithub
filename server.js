@@ -325,7 +325,8 @@ io.on('connection', (socket) => {
       username,
       color,
       documentos: listaDocumentos,
-      indiceEjercicio: indiceEjercicio // Enviar el índice guardado para este archivo
+      indiceEjercicio: indiceEjercicio, // Enviar el índice guardado para este archivo
+      nombreArchivo: nombreArchivo // Enviar el nombre del archivo para verificar en el cliente
     });
 
     // Notificar a todos los demás usuarios
