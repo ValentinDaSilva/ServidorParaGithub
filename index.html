@@ -928,7 +928,8 @@
     <div class="contenido">
       <h2>Editor Multiusuario</h2>
       <p>Ingresá tu correo para comenzar:</p>
-      <input type="email" id="input-usuario" placeholder="tu@correo.com" />
+      <input type="email" id="input-usuario" placeholder="tu@correo.com" list="correos-sugeridos" autocomplete="email" />
+      <datalist id="correos-sugeridos"></datalist>
       <br>
       <button onclick="conectarUsuario()">Conectar</button>
     </div>
@@ -3502,10 +3503,70 @@ document.addEventListener("keydown", function(e) {
       }
     });
     
+    // Función para cargar correos registrados del servidor
+    async function cargarCorreosRegistrados() {
+      try {
+        // Detectar la URL del servidor (mismo origen o localhost:3002)
+        const currentOrigin = window.location.origin;
+        const currentHostname = window.location.hostname;
+        let serverURL = currentOrigin;
+        
+        // Si estamos en localhost, usar localhost:3002
+        if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
+          serverURL = 'http://localhost:3002';
+        }
+        
+        const response = await fetch(`${serverURL}/correos-registrados`);
+        if (response.ok) {
+          const data = await response.json();
+          const correos = data.correos || [];
+          
+          // Poblar el datalist con los correos
+          const datalist = document.getElementById('correos-sugeridos');
+          if (datalist) {
+            datalist.innerHTML = ''; // Limpiar opciones anteriores
+            correos.forEach(correo => {
+              const option = document.createElement('option');
+              option.value = correo;
+              datalist.appendChild(option);
+            });
+            console.log(`📧 ${correos.length} correos cargados para autocompletado`);
+          }
+        } else {
+          console.warn('No se pudieron cargar los correos registrados');
+        }
+      } catch (error) {
+        console.warn('Error al cargar correos registrados (esto es normal si el servidor no está disponible):', error.message);
+      }
+    }
+    
     // Cargar correo guardado cuando se carga la página
     window.addEventListener('DOMContentLoaded', () => {
       cargarCorreoGuardado();
+      // Cargar correos registrados para el autocompletado
+      cargarCorreosRegistrados();
     });
+    
+    // También cargar correos cuando se muestra el modal (por si se abre después)
+    const modalUsuario = document.getElementById('modal-usuario');
+    if (modalUsuario) {
+      // Observar cuando el modal se muestra
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+            const modal = mutation.target;
+            if (modal.style.display !== 'none' && modal.style.display !== '') {
+              // El modal se mostró, cargar correos si no están cargados
+              const datalist = document.getElementById('correos-sugeridos');
+              if (datalist && datalist.children.length === 0) {
+                cargarCorreosRegistrados();
+              }
+            }
+          }
+        });
+      });
+      observer.observe(modalUsuario, { attributes: true, attributeFilter: ['style'] });
+    }
     
     function conectarUsuario() {
       const correoUsuario = document.getElementById('input-usuario').value.trim();

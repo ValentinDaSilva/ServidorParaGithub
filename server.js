@@ -298,6 +298,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Endpoint para obtener lista de correos registrados
+app.get('/correos-registrados', (req, res) => {
+  try {
+    const progreso = leerProgreso();
+    const correos = Object.keys(progreso);
+    res.json({ correos: correos });
+  } catch (error) {
+    console.error('Error al obtener correos registrados:', error);
+    res.status(500).json({ error: 'Error al obtener correos registrados' });
+  }
+});
+
 // Manejo de conexiones Socket.io
 io.on('connection', (socket) => {
   console.log('Usuario conectado:', socket.id);
