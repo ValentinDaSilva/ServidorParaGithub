@@ -771,6 +771,27 @@
       border-radius: 5px;
       background: #333;
       color: white;
+      box-sizing: border-box;
+    }
+    
+    /* Estilos para el menú de sugerencias de correo */
+    #sugerencias-correo {
+      background: #333 !important;
+      border: 1px solid #555 !important;
+      color: white;
+    }
+    
+    #sugerencias-correo div {
+      color: white !important;
+      border-bottom: 1px solid #555 !important;
+    }
+    
+    #sugerencias-correo div:hover {
+      background-color: #555 !important;
+    }
+    
+    #sugerencias-correo div:last-child {
+      border-bottom: none !important;
     }
 
     #modal-usuario button {
@@ -928,8 +949,10 @@
     <div class="contenido">
       <h2>Editor Multiusuario</h2>
       <p>Ingresá tu correo para comenzar:</p>
-      <input type="email" id="input-usuario" placeholder="tu@correo.com" list="correos-sugeridos" autocomplete="email" />
-      <datalist id="correos-sugeridos"></datalist>
+      <div style="position: relative; display: inline-block; width: 100%;">
+        <input type="email" id="input-usuario" placeholder="tu@correo.com" autocomplete="off" />
+        <div id="sugerencias-correo" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #333; border: 1px solid #555; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.3); margin-top: 2px; color: white;"></div>
+      </div>
       <br>
       <button onclick="conectarUsuario()">Conectar</button>
     </div>
@@ -3503,6 +3526,10 @@ document.addEventListener("keydown", function(e) {
       }
     });
     
+    // Variable global para almacenar los correos registrados
+    let correosRegistrados = [];
+    let indiceSugerenciaSeleccionada = -1;
+    
     // Función para cargar correos registrados del servidor
     async function cargarCorreosRegistrados() {
       try {
@@ -3519,19 +3546,8 @@ document.addEventListener("keydown", function(e) {
         const response = await fetch(`${serverURL}/correos-registrados`);
         if (response.ok) {
           const data = await response.json();
-          const correos = data.correos || [];
-          
-          // Poblar el datalist con los correos
-          const datalist = document.getElementById('correos-sugeridos');
-          if (datalist) {
-            datalist.innerHTML = ''; // Limpiar opciones anteriores
-            correos.forEach(correo => {
-              const option = document.createElement('option');
-              option.value = correo;
-              datalist.appendChild(option);
-            });
-            console.log(`📧 ${correos.length} correos cargados para autocompletado`);
-          }
+          correosRegistrados = data.correos || [];
+          console.log(`📧 ${correosRegistrados.length} correos cargados para autocompletado`);
         } else {
           console.warn('No se pudieron cargar los correos registrados');
         }
@@ -3540,11 +3556,166 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
+    // Función para mostrar sugerencias de correos
+    function mostrarSugerenciasCorreo(valorInput) {
+      const sugerenciasDiv = document.getElementById('sugerencias-correo');
+      if (!sugerenciasDiv) return;
+      
+      // Si el input está vacío, no mostrar sugerencias
+      if (!valorInput || valorInput.trim() === '') {
+        sugerenciasDiv.style.display = 'none';
+        indiceSugerenciaSeleccionada = -1;
+        return;
+      }
+      
+      const valorLower = valorInput.toLowerCase().trim();
+      
+      // Filtrar correos que coincidan con lo escrito
+      const correosFiltrados = correosRegistrados.filter(correo => 
+        correo.toLowerCase().includes(valorLower)
+      );
+      
+      // Si no hay coincidencias, ocultar el menú
+      if (correosFiltrados.length === 0) {
+        sugerenciasDiv.style.display = 'none';
+        indiceSugerenciaSeleccionada = -1;
+        return;
+      }
+      
+      // Mostrar sugerencias
+      sugerenciasDiv.innerHTML = '';
+      correosFiltrados.forEach((correo, index) => {
+        const item = document.createElement('div');
+        item.textContent = correo;
+        item.style.cssText = 'padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #555; color: white;';
+        item.style.transition = 'background-color 0.2s';
+        
+        // Estilo hover
+        item.onmouseenter = function() {
+          this.style.backgroundColor = '#555';
+          indiceSugerenciaSeleccionada = index;
+          // Remover selección de otros items
+          Array.from(sugerenciasDiv.children).forEach((child, i) => {
+            if (i !== index) {
+              child.style.backgroundColor = '';
+            }
+          });
+        };
+        
+        item.onmouseleave = function() {
+          this.style.backgroundColor = '';
+        };
+        
+        // Click para seleccionar
+        item.onclick = function() {
+          const inputUsuario = document.getElementById('input-usuario');
+          if (inputUsuario) {
+            inputUsuario.value = correo;
+            sugerenciasDiv.style.display = 'none';
+            indiceSugerenciaSeleccionada = -1;
+            inputUsuario.focus();
+          }
+        };
+        
+        sugerenciasDiv.appendChild(item);
+      });
+      
+      sugerenciasDiv.style.display = 'block';
+      indiceSugerenciaSeleccionada = -1;
+    }
+    
+    // Configurar eventos del input de correo
+    function configurarAutocompletadoCorreo() {
+      const inputUsuario = document.getElementById('input-usuario');
+      if (!inputUsuario) return;
+      
+      // Evento input - mostrar sugerencias mientras escribe
+      inputUsuario.addEventListener('input', function(e) {
+        mostrarSugerenciasCorreo(e.target.value);
+      });
+      
+      // Evento focus - mostrar sugerencias si hay texto
+      inputUsuario.addEventListener('focus', function(e) {
+        if (e.target.value && e.target.value.trim() !== '') {
+          mostrarSugerenciasCorreo(e.target.value);
+        }
+      });
+      
+      // Evento keydown - navegar con teclado
+      inputUsuario.addEventListener('keydown', function(e) {
+        const sugerenciasDiv = document.getElementById('sugerencias-correo');
+        if (!sugerenciasDiv || sugerenciasDiv.style.display === 'none') {
+          // Si presiona abajo y hay sugerencias, mostrar la primera
+          if (e.key === 'ArrowDown' && inputUsuario.value && inputUsuario.value.trim() !== '') {
+            e.preventDefault();
+            mostrarSugerenciasCorreo(inputUsuario.value);
+            const items = sugerenciasDiv.children;
+            if (items.length > 0) {
+              indiceSugerenciaSeleccionada = 0;
+              items[0].style.backgroundColor = '#555';
+            }
+            return;
+          }
+          return;
+        }
+        
+        const items = sugerenciasDiv.children;
+        
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          // Remover selección anterior
+          if (indiceSugerenciaSeleccionada >= 0 && items[indiceSugerenciaSeleccionada]) {
+            items[indiceSugerenciaSeleccionada].style.backgroundColor = '';
+          }
+          // Mover hacia abajo
+          indiceSugerenciaSeleccionada = (indiceSugerenciaSeleccionada + 1) % items.length;
+          items[indiceSugerenciaSeleccionada].style.backgroundColor = '#555';
+          items[indiceSugerenciaSeleccionada].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          // Remover selección anterior
+          if (indiceSugerenciaSeleccionada >= 0 && items[indiceSugerenciaSeleccionada]) {
+            items[indiceSugerenciaSeleccionada].style.backgroundColor = '';
+          }
+          // Mover hacia arriba
+          indiceSugerenciaSeleccionada = indiceSugerenciaSeleccionada <= 0 ? items.length - 1 : indiceSugerenciaSeleccionada - 1;
+          items[indiceSugerenciaSeleccionada].style.backgroundColor = '#555';
+          items[indiceSugerenciaSeleccionada].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          // Seleccionar la sugerencia actual si hay una seleccionada
+          if (indiceSugerenciaSeleccionada >= 0 && items[indiceSugerenciaSeleccionada]) {
+            items[indiceSugerenciaSeleccionada].click();
+          } else {
+            // Si no hay sugerencia seleccionada, intentar conectar
+            conectarUsuario();
+          }
+        } else if (e.key === 'Escape') {
+          sugerenciasDiv.style.display = 'none';
+          indiceSugerenciaSeleccionada = -1;
+        }
+      });
+      
+      // Ocultar sugerencias cuando se hace click fuera
+      document.addEventListener('click', function(e) {
+        const sugerenciasDiv = document.getElementById('sugerencias-correo');
+        const inputUsuario = document.getElementById('input-usuario');
+        if (sugerenciasDiv && inputUsuario && 
+            !sugerenciasDiv.contains(e.target) && 
+            e.target !== inputUsuario) {
+          sugerenciasDiv.style.display = 'none';
+          indiceSugerenciaSeleccionada = -1;
+        }
+      });
+    }
+    
     // Cargar correo guardado cuando se carga la página
     window.addEventListener('DOMContentLoaded', () => {
       cargarCorreoGuardado();
       // Cargar correos registrados para el autocompletado
       cargarCorreosRegistrados();
+      // Configurar autocompletado del input de correo
+      configurarAutocompletadoCorreo();
     });
     
     // También cargar correos cuando se muestra el modal (por si se abre después)
@@ -3557,8 +3728,7 @@ document.addEventListener("keydown", function(e) {
             const modal = mutation.target;
             if (modal.style.display !== 'none' && modal.style.display !== '') {
               // El modal se mostró, cargar correos si no están cargados
-              const datalist = document.getElementById('correos-sugeridos');
-              if (datalist && datalist.children.length === 0) {
+              if (correosRegistrados.length === 0) {
                 cargarCorreosRegistrados();
               }
             }
