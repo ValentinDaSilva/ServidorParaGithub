@@ -41,18 +41,51 @@ function guardarProgreso(progreso) {
   }
 }
 
-// Función para obtener el índice de ejercicio de un correo
-function obtenerIndiceEjercicio(correo) {
+// Función para obtener el índice de ejercicio de un correo y archivo específico
+function obtenerIndiceEjercicio(correo, nombreArchivo) {
   const progreso = leerProgreso();
-  return progreso[correo] !== undefined ? progreso[correo] : 0;
+  if (!progreso[correo]) return 0;
+  if (!nombreArchivo) {
+    // Si no se proporciona nombreArchivo, mantener compatibilidad con formato anterior
+    // Buscar si hay un formato antiguo (solo número)
+    if (typeof progreso[correo] === 'number') {
+      return progreso[correo];
+    }
+    // Si es objeto pero no hay nombreArchivo, retornar 0
+    return 0;
+  }
+  return progreso[correo][nombreArchivo] !== undefined ? progreso[correo][nombreArchivo] : 0;
 }
 
-// Función para actualizar el índice de ejercicio de un correo
-function actualizarIndiceEjercicio(correo, indice) {
+// Función para actualizar el índice de ejercicio de un correo y archivo específico
+function actualizarIndiceEjercicio(correo, indice, nombreArchivo) {
   const progreso = leerProgreso();
-  progreso[correo] = indice;
-  guardarProgreso(progreso);
-  console.log(`📝 Progreso actualizado: ${correo} -> ejercicio ${indice}`);
+  if (!progreso[correo]) {
+    progreso[correo] = {};
+  }
+  // Si el valor anterior era un número (formato antiguo), convertirlo a objeto
+  if (typeof progreso[correo] === 'number') {
+    const indiceAntiguo = progreso[correo];
+    progreso[correo] = {};
+    // Opcionalmente, podrías migrar el índice antiguo al primer archivo que se use
+  }
+  if (nombreArchivo) {
+    progreso[correo][nombreArchivo] = indice;
+    guardarProgreso(progreso);
+    console.log(`📝 Progreso actualizado: ${correo} -> archivo ${nombreArchivo} -> ejercicio ${indice}`);
+  } else {
+    // Si no se proporciona nombreArchivo, mantener compatibilidad con formato anterior
+    if (typeof progreso[correo] === 'object' && Object.keys(progreso[correo]).length === 0) {
+      // Si es un objeto vacío, convertir a número (formato antiguo para compatibilidad)
+      progreso[correo] = indice;
+    } else {
+      // Si ya tiene archivos, no hacer nada (necesitamos nombreArchivo)
+      console.log(`⚠️ No se puede actualizar índice sin nombreArchivo para ${correo}`);
+      return;
+    }
+    guardarProgreso(progreso);
+    console.log(`📝 Progreso actualizado (formato antiguo): ${correo} -> ejercicio ${indice}`);
+  }
 }
 
 // Función para obtener la IP local (se usa en múltiples servidores)
@@ -271,11 +304,11 @@ io.on('connection', (socket) => {
 
   // Cuando un usuario se une con correo
   socket.on('usuario-join', (data) => {
-    const { username } = data; // username ahora es el correo
+    const { username, nombreArchivo } = data; // username ahora es el correo, nombreArchivo es opcional
     const color = generarColorAleatorio();
     
-    // Obtener el índice de ejercicio guardado para este correo
-    const indiceEjercicio = obtenerIndiceEjercicio(username);
+    // Obtener el índice de ejercicio guardado para este correo y archivo específico
+    const indiceEjercicio = obtenerIndiceEjercicio(username, nombreArchivo);
     
     usuariosConectados.set(socket.id, { username, color, pestañaActiva: null });
     
@@ -292,7 +325,7 @@ io.on('connection', (socket) => {
       username,
       color,
       documentos: listaDocumentos,
-      indiceEjercicio: indiceEjercicio // Enviar el índice guardado
+      indiceEjercicio: indiceEjercicio // Enviar el índice guardado para este archivo
     });
 
     // Notificar a todos los demás usuarios
@@ -619,12 +652,12 @@ io.on('connection', (socket) => {
     const usuarioInfo = usuariosConectados.get(socket.id);
     if (!usuarioInfo) return;
     
-    const { indice } = data;
+    const { indice, nombreArchivo } = data;
     const correo = usuarioInfo.username; // El username es el correo
     
     if (typeof indice === 'number' && indice >= 0) {
-      actualizarIndiceEjercicio(correo, indice);
-      socket.emit('indice-actualizado', { indice, correo });
+      actualizarIndiceEjercicio(correo, indice, nombreArchivo);
+      socket.emit('indice-actualizado', { indice, correo, nombreArchivo });
     }
   });
 

@@ -1330,6 +1330,9 @@
   const contenedorCargaManual = document.getElementById("cargar-ejercicios");
   const btnIniciar = document.querySelector('button[onclick="iniciar()"]');
 
+  // Variable global para almacenar el nombre del archivo actual
+  let nombreArchivoActual = null;
+
   // Inicialmente oculto input file y contenedor manual
   if(inputArchivo) inputArchivo.style.display = "none";
   if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
@@ -1501,6 +1504,12 @@
       }
     }
     
+    // Guardar la selección de archivo con expiración de 30 minutos
+    guardarArchivoSeleccionado(nombreArchivo, serverURL);
+    
+    // Guardar el nombre del archivo actual globalmente
+    nombreArchivoActual = nombreArchivo;
+    
     // Construir la URL completa del archivo
     const urlArchivo = `${serverURL}/${nombreArchivo}`;
     console.log(`📥 Intentando cargar archivo: ${urlArchivo} desde servidor: ${serverURL}`);
@@ -1555,6 +1564,50 @@
     });
   }
 
+  // ========== GESTIÓN DE ARCHIVO SELECCIONADO EN LOCALSTORAGE ==========
+  const ARCHIVO_SELECCIONADO_KEY = 'archivoSeleccionado';
+  const EXPIRACION_ARCHIVO = 30 * 60 * 1000; // 30 minutos en milisegundos
+  
+  // Guardar archivo seleccionado con expiración de 30 minutos
+  function guardarArchivoSeleccionado(nombreArchivo, serverURL) {
+    const datos = {
+      nombreArchivo: nombreArchivo,
+      serverURL: serverURL,
+      expiracion: Date.now() + EXPIRACION_ARCHIVO
+    };
+    localStorage.setItem(ARCHIVO_SELECCIONADO_KEY, JSON.stringify(datos));
+  }
+  
+  // Obtener archivo seleccionado guardado (si no ha expirado)
+  function obtenerArchivoSeleccionado() {
+    try {
+      const datosStr = localStorage.getItem(ARCHIVO_SELECCIONADO_KEY);
+      if (!datosStr) return null;
+      
+      const datos = JSON.parse(datosStr);
+      
+      // Verificar si ha expirado
+      if (Date.now() > datos.expiracion) {
+        localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
+        return null;
+      }
+      
+      return {
+        nombreArchivo: datos.nombreArchivo,
+        serverURL: datos.serverURL
+      };
+    } catch (error) {
+      console.error('Error al obtener archivo seleccionado:', error);
+      localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
+      return null;
+    }
+  }
+  
+  // Limpiar archivo seleccionado guardado
+  function limpiarArchivoSeleccionado() {
+    localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
+  }
+
   // Intentar cargar ejercicios.js desde servidor localhost (función original mantenida por compatibilidad)
   function cargarEjerciciosDesdeServidor() {
     // Ahora mostramos el modal para seleccionar archivo
@@ -1562,7 +1615,25 @@
     return Promise.resolve();
   }
 
-  if (confirm("¿Intentar cargar los ejercicios automáticamente desde el servidor?")) {
+  // Verificar si hay un archivo guardado y cargarlo automáticamente
+  const archivoGuardado = obtenerArchivoSeleccionado();
+  if (archivoGuardado) {
+    console.log(`📂 Archivo guardado encontrado: ${archivoGuardado.nombreArchivo} desde ${archivoGuardado.serverURL}`);
+    // Inicializar nombreArchivoActual antes de cargar
+    nombreArchivoActual = archivoGuardado.nombreArchivo;
+    cargarArchivoSeleccionado(archivoGuardado.nombreArchivo, archivoGuardado.serverURL)
+      .then(() => {
+        if(inputArchivo) inputArchivo.style.display = "none";
+        if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
+        if(btnIniciar) btnIniciar.disabled = false;
+      })
+      .catch(() => {
+        // Si falla la carga del archivo guardado, limpiar y mostrar opciones normales
+        limpiarArchivoSeleccionado();
+        if(inputArchivo) inputArchivo.style.display = "none";
+        if(contenedorCargaManual) contenedorCargaManual.style.display = "block";
+      });
+  } else if (confirm("¿Intentar cargar los ejercicios automáticamente desde el servidor?")) {
     cargarEjerciciosDesdeServidor()
       .then(() => {
         if(inputArchivo) inputArchivo.style.display = "none";
@@ -3388,12 +3459,13 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Listener para Alt + S para limpiar correo guardado
+    // Listener para Alt + S para limpiar correo guardado y archivo seleccionado
     document.addEventListener('keydown', (e) => {
       if (e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         limpiarCorreoUsuario();
-        alert('Correo de usuario guardado borrado. Podés ingresar un nuevo correo.');
+        localStorage.removeItem('archivoSeleccionado');
+        alert('Correo de usuario y archivo seleccionado borrados. Podés ingresar un nuevo correo y seleccionar un nuevo archivo.');
       }
     });
     
@@ -3526,7 +3598,14 @@ document.addEventListener("keydown", function(e) {
         // Iniciar verificación periódica de conexión
         iniciarVerificacionConexion();
         
-        socket.emit('usuario-join', { username: correoUsuario });
+        // Obtener el nombre del archivo actual si está disponible
+        const archivoGuardado = obtenerArchivoSeleccionado();
+        const nombreArchivoParaEnviar = nombreArchivoActual || (archivoGuardado ? archivoGuardado.nombreArchivo : null);
+        
+        socket.emit('usuario-join', { 
+          username: correoUsuario,
+          nombreArchivo: nombreArchivoParaEnviar
+        });
       });
 
       socket.on('connect_error', (error) => {
@@ -3564,8 +3643,11 @@ document.addEventListener("keydown", function(e) {
     // Función para enviar el índice de ejercicio al servidor
     function sincronizarIndiceEjercicio(indiceEjercicio) {
       if (socket && socket.connected && miUsuario) {
-        socket.emit('actualizar-indice-ejercicio', { indice: indiceEjercicio });
-        console.log(`📤 Índice sincronizado con servidor: ${indiceEjercicio}`);
+        socket.emit('actualizar-indice-ejercicio', { 
+          indice: indiceEjercicio,
+          nombreArchivo: nombreArchivoActual 
+        });
+        console.log(`📤 Índice sincronizado con servidor: ${indiceEjercicio} para archivo: ${nombreArchivoActual || 'N/A'}`);
       }
     }
 
