@@ -5219,7 +5219,7 @@ document.addEventListener("keydown", function(e) {
       widget.style.verticalAlign = 'text-bottom';
 
       const label = document.createElement('span');
-      label.textContent = username;
+      label.textContent = obtenerNombreUsuario(username);
       label.style.backgroundColor = color;
       label.style.color = 'white';
       label.style.position = 'absolute';
@@ -5272,6 +5272,13 @@ document.addEventListener("keydown", function(e) {
       }
     }
 
+    // Función auxiliar para obtener solo la parte del correo antes del @
+    function obtenerNombreUsuario(correo) {
+      if (!correo) return '';
+      const partes = correo.split('@');
+      return partes[0] || correo;
+    }
+    
     function actualizarListaUsuarios(usuarios) {
       const lista = document.getElementById('lista-usuarios');
       lista.innerHTML = '';
@@ -5290,13 +5297,15 @@ document.addEventListener("keydown", function(e) {
         // No mostrar nuestro propio usuario
         if (usuario.socketId === socket.id) return;
         
+        const nombreUsuario = obtenerNombreUsuario(usuario.username);
+        
         const item = document.createElement('div');
         item.className = 'usuario-item';
         item.style.cursor = 'pointer';
         item.title = usuario.pestañaActiva ? `Ir a ${usuario.username} (${documentosDisponibles.get(usuario.pestañaActiva)?.nombre || 'Pestaña'})` : `Usuario: ${usuario.username}`;
         item.innerHTML = `
           <span class="usuario-color" style="background-color: ${usuario.color}"></span>
-          <span class="usuario-nombre">${usuario.username}</span>
+          <span class="usuario-nombre">${nombreUsuario}</span>
           <span class="invitar-simbolo" title="Invitar a ${usuario.username} a mi posición" style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">📍</span>
         `;
         
@@ -5581,7 +5590,7 @@ document.addEventListener("keydown", function(e) {
       // Crear etiqueta con el nombre del usuario
       const label = document.createElement('span');
       label.className = 'remote-cursor-label';
-      label.textContent = username;
+      label.textContent = obtenerNombreUsuario(username);
       label.style.backgroundColor = color;
       label.style.color = 'white';
       label.style.position = 'absolute';
