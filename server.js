@@ -11,7 +11,13 @@ const os = require('os');
 const isWin = process.platform === 'win32';
 
 // === Configuración de rutas ===
-const tempDir = "C:/Users/valed/Desktop/Repositorios/Servidor";
+
+const tempDir = path.join(__dirname, "temp");
+
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+  console.log("📁 Carpeta temp creada:", tempDir);
+}
 const carpetaEjercicios = "C:/Users/valed/Desktop/Repositorios/Algoritmos-Y-Estructuras-De-Datos/Ejercicios";
 const MAX_OUTPUT_LENGTH = 100 * 1024;
 const archivoProgreso = path.join(__dirname, 'progreso-usuarios.json');
@@ -758,6 +764,24 @@ io.on('connection', (socket) => {
       io.emit('documentos-actualizados', listaDocumentos);
     }
   });
+  socket.on('abrir-link-usuario', ({ socketIdDestino, url }) => {
+  console.log('📥 EVENTO abrir-link-usuario RECIBIDO');
+  console.log('   De:', socket.id);
+  console.log('   Para:', socketIdDestino);
+  console.log('   URL:', url);
+
+  if (!usuariosConectados.has(socketIdDestino)) {
+    console.log('❌ Usuario destino NO encontrado');
+    console.log('Usuarios conectados:', Array.from(usuariosConectados.keys()));
+    return;
+  }
+
+  io.to(socketIdDestino).emit('abrir-link', { url });
+
+  console.log('✅ Evento abrir-link ENVIADO al usuario destino');
+});
+
+
 });
 
 // Función para generar un color aleatorio para cada usuario

@@ -1,3 +1,4 @@
+//[index.html]
 <!-- Guarda esto como index.html y probalo en tu navegador -->
 <!DOCTYPE html>
 <html lang="es">
@@ -1148,7 +1149,6 @@
 </div>
 <script src="/URLS.js"></script>
   <script>
-    // Variables globales Socket.io
     let socket = null;
     let miUsuario = null;
     let miColor = null;
@@ -1163,7 +1163,6 @@
     let socketListenersRegistrados = false; // Control para registrar listeners solo una vez
     let vaciarEditoresPorDesconexion = null; // Función para vaciar editores (se define en registrarSocketListeners)
 
-    // Variables para sistema de pestañas
     let editoresPorPestaña = new Map(); // tabId -> {editorInstance, codigo, cursosRemotos}
     let pestañaActiva = null;
     let documentosDisponibles = new Map(); // tabId -> {nombre, codigo, creadorSocketId}
@@ -1171,13 +1170,11 @@
     let permitirColaboracion = true; // Controla si se permite colaborar (navegar a otros usuarios y editar hojas de otros)
     let navegandoPorInvitacion = false; // Flag para permitir acceso temporal a hojas ajenas por invitación
     
-    // Función helper para verificar si se puede editar una pestaña
     function puedeEditarPestaña(tabId) {
       if (permitirColaboracion) {
         return true; // Si la colaboración está activa, siempre se puede editar
       }
       
-      // Si la colaboración está desactivada, solo se puede editar si es el creador
       const docInfo = documentosDisponibles.get(tabId);
       if (!docInfo || !docInfo.creadorSocketId) {
         return true; // Si no hay información del creador, permitir (compatibilidad con pestañas antiguas)
@@ -1186,7 +1183,6 @@
       return docInfo.creadorSocketId === socket.id;
     }
     
-    // Función global para actualizar el estado de solo lectura de todos los editores
     function actualizarEstadoSoloLecturaTodos() {
       editoresPorPestaña.forEach((editorData, tabId) => {
         if (editorData && editorData.editorInstance) {
@@ -1196,24 +1192,19 @@
       });
     }
     
-    // Función para mover al usuario a una hoja propia
     function moverAhojaPropia() {
       if (!socket || !socket.connected) return;
       
       if (!pestañaActiva) {
-        // No hay pestaña activa, crear una nueva
         crearNuevaPestaña();
         return;
       }
       
-      // Verificar si la pestaña actual le pertenece
       const docInfo = documentosDisponibles.get(pestañaActiva);
       if (docInfo && docInfo.creadorSocketId && docInfo.creadorSocketId === socket.id) {
-        // Ya está en una hoja propia, no hacer nada
         return;
       }
       
-      // Buscar una hoja que le pertenezca
       let hojaPropiaEncontrada = null;
       documentosDisponibles.forEach((doc, tabId) => {
         if (doc.creadorSocketId === socket.id) {
@@ -1222,18 +1213,13 @@
       });
       
       if (hojaPropiaEncontrada) {
-        // Cambiar a la hoja propia encontrada
         cambiarPestaña(hojaPropiaEncontrada);
       } else {
-        // No tiene ninguna hoja propia, crear una nueva
         const nombre = `Mi hoja ${documentosDisponibles.size + 1}`;
         socket.emit('crear-pestaña', { nombre });
-        // El cambio de pestaña se hará automáticamente cuando se reciba el evento 'pestaña-creada'
-        // porque el servidor envía creadorSocketId y el cliente verifica si es el creador
       }
     }
     
-    // Función para actualizar el estado visual de las pestañas (deshabilitar las que no pertenecen)
     function actualizarEstadoVisualPestañas() {
       const todasLasPestañas = document.querySelectorAll('.editor-tab[data-tab-id]');
       todasLasPestañas.forEach(tabBtn => {
@@ -1244,13 +1230,11 @@
         const esPropia = !docInfo || !docInfo.creadorSocketId || docInfo.creadorSocketId === socket.id;
         
         if (!permitirColaboracion && !esPropia) {
-          // Deshabilitar visualmente y funcionalmente pestañas que no pertenecen al usuario
           tabBtn.style.opacity = '0.5';
           tabBtn.style.cursor = 'not-allowed';
           tabBtn.style.pointerEvents = 'none';
           tabBtn.title = 'No puedes acceder a esta hoja (no te pertenece)';
         } else {
-          // Habilitar pestañas
           tabBtn.style.opacity = '1';
           tabBtn.style.cursor = 'pointer';
           tabBtn.style.pointerEvents = 'auto';
@@ -1259,7 +1243,6 @@
       });
     }
     
-    // Detectar pérdida de conexión de red (WiFi, etc.)
     window.addEventListener('offline', () => {
       console.log('🔌 Conexión de red perdida');
       if (vaciarEditoresPorDesconexion) {
@@ -1267,7 +1250,6 @@
       }
     });
     
-    // Verificar periódicamente si el socket está conectado
     let verificacionConexionInterval = null;
     let intervaloReconexion = null; // Intervalo para intentos automáticos de reconexión
     
@@ -1285,24 +1267,17 @@
       }, 2000); // Verificar cada 2 segundos
     }
 
-    // Variables globales
-    //let ejercicios = [];
     let indice = -1;
 
-    // Función global para limpiar todos los ejercicios (DOM, variables y storage)
     function limpiarEjercicios() {
       console.log('🧹 Limpiando ejercicios...');
       
-      // Limpiar variable global
       if (typeof ejercicios !== 'undefined') {
         ejercicios = [];
       }
       
-      // Limpiar sessionStorage (pero NO el índice)
       sessionStorage.removeItem('archivoEjercicios');
-      // NO eliminar el índice: sessionStorage.removeItem('indice');
       
-      // Limpiar elementos del DOM
       const elementosEjercicio = [
         'ejercicio',
         'pista',
@@ -1331,12 +1306,7 @@
         }
       });
       
-      // NO resetear el índice - mantenerlo como está
-      // if (typeof indice !== 'undefined') {
-      //   indice = -1;
-      // }
       
-      // Ocultar botón siguiente y mostrar botón iniciar
       const btnSiguiente = document.querySelector('button[onclick="siguiente()"]');
       const btnIniciar = document.querySelector('button[onclick="iniciar()"]');
       if (btnSiguiente) {
@@ -1349,45 +1319,36 @@
       console.log('✅ Ejercicios limpiados completamente (índice preservado)');
     }
   
-  // Referencias DOM
   const inputArchivo = document.getElementById("archivo-ejercicios");
   const contenedorCargaManual = document.getElementById("cargar-ejercicios");
   const btnIniciar = document.querySelector('button[onclick="iniciar()"]');
 
-  // Variable global para almacenar el nombre del archivo actual
   let nombreArchivoActual = null;
 
-  // Inicialmente oculto input file y contenedor manual
   if(inputArchivo) inputArchivo.style.display = "none";
   if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
 
-  // Función para obtener URLs del servidor de archivos estáticos (puerto 3001)
   function obtenerURLsServidorArchivos() {
     const urlsToTry = [];
     const currentHostname = window.location.hostname;
     const protocol = window.location.protocol;
     
-    // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página, pero cambiar el puerto a 3001
     if (currentHostname) {
       if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-        // Es una IP de red, construir URL con puerto 3001
         const archivosURL = `${protocol}//${currentHostname}:3001`;
         urlsToTry.push(archivosURL);
         console.log('🌐 URL de servidor de archivos detectada desde red:', archivosURL);
       } else {
-        // Es localhost
         urlsToTry.push('http://localhost:3001');
         console.log('🏠 Usando localhost para servidor de archivos');
       }
     }
     
-    // PRIORIDAD 2: URLs desde config.js (si existe) - cambiar puerto a 3001
     if (typeof getServerURLs === 'function') {
       try {
         const configUrls = getServerURLs();
         configUrls.forEach(url => {
           if (url && typeof url === 'string') {
-            // Cambiar el puerto a 3001
             let archivosURL = url;
             if (archivosURL.includes(':')) {
               archivosURL = archivosURL.replace(/:(\d+)(\/|$)/, ':3001$2');
@@ -1418,7 +1379,6 @@
       }
     }
     
-    // PRIORIDAD 3: Fallback - localhost si no hay nada más
     if (urlsToTry.length === 0) {
       urlsToTry.push('http://localhost:3001');
       console.log('⚠️ No se detectaron URLs, usando fallback localhost para archivos');
@@ -1428,7 +1388,6 @@
     return urlsToTry;
   }
 
-  // Función para intentar obtener lista de archivos con múltiples URLs
   function intentarObtenerListaArchivos(urls, index) {
     if (index >= urls.length) {
       const loader = document.getElementById("loader-spinner");
@@ -1460,23 +1419,18 @@
       })
       .catch(error => {
         console.warn(`❌ Error al obtener lista desde ${serverURL}:`, error);
-        // Intentar con la siguiente URL
         intentarObtenerListaArchivos(urls, index + 1);
       });
   }
 
-  // Función para mostrar la lista de archivos en el modal
   function mostrarListaArchivos(archivos, serverURL) {
     const modal = document.getElementById("modal-seleccionar-archivo");
     const listaArchivos = document.getElementById("lista-archivos");
     
-    // Limpiar lista anterior
     listaArchivos.innerHTML = "";
     
-    // Guardar la URL del servidor para usarla al cargar archivos
     listaArchivos.setAttribute('data-server-url', serverURL);
     
-    // Crear botones para cada archivo
     archivos.forEach(archivo => {
       const boton = document.createElement("button");
       boton.textContent = archivo;
@@ -1492,49 +1446,39 @@
     modal.style.display = "flex";
   }
 
-  // Función para mostrar modal de selección de archivos
   function mostrarModalSeleccionarArchivo() {
     const modal = document.getElementById("modal-seleccionar-archivo");
     const loader = document.getElementById("loader-spinner");
     
     if (loader) loader.style.display = "flex";
     
-    // Obtener URLs del servidor de archivos
     const urlsArchivos = obtenerURLsServidorArchivos();
     
-    // Intentar obtener lista de archivos
     intentarObtenerListaArchivos(urlsArchivos, 0);
   }
 
-  // Función para cerrar el modal de selección
   function cerrarModalSeleccionarArchivo() {
     const modal = document.getElementById("modal-seleccionar-archivo");
     modal.style.display = "none";
   }
 
-  // Función para cargar el archivo seleccionado
   function cargarArchivoSeleccionado(nombreArchivo, serverURL) {
     cerrarModalSeleccionarArchivo();
     
-    // Si no se proporciona serverURL, obtenerla de la lista o usar la función de detección
     if (!serverURL) {
       const listaArchivos = document.getElementById("lista-archivos");
       serverURL = listaArchivos ? listaArchivos.getAttribute('data-server-url') : null;
       
       if (!serverURL) {
-        // Obtener la primera URL disponible
         const urlsArchivos = obtenerURLsServidorArchivos();
         serverURL = urlsArchivos[0] || 'http://localhost:3001';
       }
     }
     
-    // Guardar la selección de archivo con expiración de 30 minutos
     guardarArchivoSeleccionado(nombreArchivo, serverURL);
     
-    // Guardar el nombre del archivo actual globalmente
     nombreArchivoActual = nombreArchivo;
     
-    // Construir la URL completa del archivo
     const urlArchivo = `${serverURL}/${nombreArchivo}`;
     console.log(`📥 Intentando cargar archivo: ${urlArchivo} desde servidor: ${serverURL}`);
     
@@ -1542,8 +1486,6 @@
       const loader = document.getElementById("loader-spinner");
       if (loader) loader.style.display = "flex";
       
-      // Primero intentar cargar el archivo como texto y luego evaluarlo
-      // Esto evita problemas de CORS con scripts
       fetch(urlArchivo)
         .then(response => {
           if (!response.ok) {
@@ -1553,19 +1495,15 @@
         })
         .then(codigo => {
           try {
-            // Evaluar el código JavaScript
-            // El código debería exportar una variable 'ejercicios'
             const funcionEjecutar = new Function(codigo + '; return typeof ejercicios !== "undefined" ? ejercicios : null;');
             const ejerciciosCargados = funcionEjecutar();
             
             if (ejerciciosCargados) {
-              // Asignar a la variable global ejercicios
               window.ejercicios = ejerciciosCargados;
               
               if (loader) loader.style.display = "none";
               console.log(`✅ Ejercicios cargados desde servidor: ${nombreArchivo}`, ejerciciosCargados);
               
-              // Limpiar índices que no correspondan a este archivo
               const nombreArchivoIndiceServidor = sessionStorage.getItem("nombreArchivoIndiceServidor");
               if (nombreArchivoIndiceServidor && nombreArchivoIndiceServidor !== nombreArchivo) {
                 sessionStorage.removeItem("indiceServidor");
@@ -1573,7 +1511,6 @@
                 console.log(`🔄 Limpiando índice del servidor porque el archivo cambió de "${nombreArchivoIndiceServidor}" a "${nombreArchivo}"`);
               }
               
-              // Ejecutar el código que estaba en el .then()
               if(inputArchivo) inputArchivo.style.display = "none";
               if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
               if(btnIniciar) btnIniciar.disabled = false;
@@ -1596,11 +1533,9 @@
     });
   }
 
-  // ========== GESTIÓN DE ARCHIVO SELECCIONADO EN LOCALSTORAGE ==========
   const ARCHIVO_SELECCIONADO_KEY = 'archivoSeleccionado';
   const EXPIRACION_ARCHIVO = 30 * 60 * 1000; // 30 minutos en milisegundos
   
-  // Guardar archivo seleccionado con expiración de 30 minutos
   function guardarArchivoSeleccionado(nombreArchivo, serverURL) {
     const datos = {
       nombreArchivo: nombreArchivo,
@@ -1610,7 +1545,6 @@
     localStorage.setItem(ARCHIVO_SELECCIONADO_KEY, JSON.stringify(datos));
   }
   
-  // Obtener archivo seleccionado guardado (si no ha expirado)
   function obtenerArchivoSeleccionado() {
     try {
       const datosStr = localStorage.getItem(ARCHIVO_SELECCIONADO_KEY);
@@ -1618,7 +1552,6 @@
       
       const datos = JSON.parse(datosStr);
       
-      // Verificar si ha expirado
       if (Date.now() > datos.expiracion) {
         localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
         return null;
@@ -1635,24 +1568,19 @@
     }
   }
   
-  // Limpiar archivo seleccionado guardado
   function limpiarArchivoSeleccionado() {
     localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
     nombreArchivoActual = null; // También limpiar la variable global
   }
 
-  // Intentar cargar ejercicios.js desde servidor localhost (función original mantenida por compatibilidad)
   function cargarEjerciciosDesdeServidor() {
-    // Ahora mostramos el modal para seleccionar archivo
     mostrarModalSeleccionarArchivo();
     return Promise.resolve();
   }
 
-  // Verificar si hay un archivo guardado y cargarlo automáticamente
   const archivoGuardado = obtenerArchivoSeleccionado();
   if (archivoGuardado) {
     console.log(`📂 Archivo guardado encontrado: ${archivoGuardado.nombreArchivo} desde ${archivoGuardado.serverURL}`);
-    // Inicializar nombreArchivoActual antes de cargar
     nombreArchivoActual = archivoGuardado.nombreArchivo;
     cargarArchivoSeleccionado(archivoGuardado.nombreArchivo, archivoGuardado.serverURL)
       .then(() => {
@@ -1661,7 +1589,6 @@
         if(btnIniciar) btnIniciar.disabled = false;
       })
       .catch(() => {
-        // Si falla la carga del archivo guardado, limpiar y mostrar opciones normales
         limpiarArchivoSeleccionado();
         if(inputArchivo) inputArchivo.style.display = "none";
         if(contenedorCargaManual) contenedorCargaManual.style.display = "block";
@@ -1682,7 +1609,6 @@
     if(contenedorCargaManual) contenedorCargaManual.style.display = "block";
   }
 
-  // Carga manual desde archivo seleccionado
   if(inputArchivo) {
     inputArchivo.addEventListener("change", function (event) {
       console.log("Ejecute Change")
@@ -1693,7 +1619,6 @@
       lector.onload = function (e) {
           try {
             const contenido = e.target.result;
-            // Ejecutamos contenido para obtener array ejercicios
             const modulo = new Function(contenido + "; return ejercicios;");
             ejercicios = modulo();
 
@@ -1701,7 +1626,6 @@
             if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
             document.getElementById('total-ejercicios').textContent = ejercicios.length;
 
-            // ✅ Guardar en localStorage el contenido del archivo para restaurar después
             sessionStorage.setItem("archivoEjercicios", contenido);
 
           } catch (err) {
@@ -1713,7 +1637,6 @@
     });
   }
 
-  // --- Restaurar ejercicios guardados si existen ---
 window.addEventListener("DOMContentLoaded", async () => {
   const guardado = sessionStorage.getItem("archivoEjercicios");
   if (guardado) {
@@ -1742,13 +1665,11 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('archivo-ejercicios').click();
         return;
       }
-      // Priorizar el índice del servidor si existe y corresponde al archivo actual
       const indiceServidor = sessionStorage.getItem("indiceServidor");
       const nombreArchivoIndiceServidor = sessionStorage.getItem("nombreArchivoIndiceServidor");
       const archivoActual = nombreArchivoActual || (obtenerArchivoSeleccionado() ? obtenerArchivoSeleccionado().nombreArchivo : null);
       
       if (indiceServidor !== null) {
-        // Verificar que el índice corresponda al archivo actual
         if (nombreArchivoIndiceServidor && nombreArchivoIndiceServidor === archivoActual) {
           const indiceServidorNum = parseInt(indiceServidor);
           if (indiceServidorNum >= 0 && indiceServidorNum < ejercicios.length) {
@@ -1760,7 +1681,6 @@ window.addEventListener("DOMContentLoaded", async () => {
             indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
           }
         } else if (!nombreArchivoIndiceServidor || !archivoActual) {
-          // Compatibilidad: si no hay verificación de archivo, usar el índice
           const indiceServidorNum = parseInt(indiceServidor);
           if (indiceServidorNum >= 0 && indiceServidorNum < ejercicios.length) {
             indice = indiceServidorNum;
@@ -1771,7 +1691,6 @@ window.addEventListener("DOMContentLoaded", async () => {
             indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
           }
         } else {
-          // Los archivos no coinciden, no usar el índice del servidor
           console.log(`⚠️ El índice del servidor es para "${nombreArchivoIndiceServidor}" pero el archivo actual es "${archivoActual}". No se usará.`);
           sessionStorage.removeItem("indiceServidor");
           sessionStorage.removeItem("nombreArchivoIndiceServidor");
@@ -1797,7 +1716,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   
     function siguiente() {
       if (indice < ejercicios.length - 1) {
-        // Antes de avanzar, validamos el código del usuario con los casos de prueba
         abrirModalValidacion();
       } else if (indice === ejercicios.length -1) {
         indice++;
@@ -1807,7 +1725,6 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('solucion').style.display = "none";
         document.querySelector('button[onclick="siguiente()"]').style.display = "none";
         sessionStorage.setItem("indice", indice);
-        // Sincronizar con el servidor
         sincronizarIndiceEjercicio(indice);
       }
     }
@@ -1816,7 +1733,6 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (indice > 0) {
         indice--;
         mostrarEjercicio();
-        // mostrarEjercicio() ya sincroniza con el servidor
       }
     }
   
@@ -1837,7 +1753,6 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('input-ejercicio').value = indice + 1;
         document.getElementById('total-ejercicios').innerHTML = ejercicios.length;
         sessionStorage.setItem("indice", indice);
-        // Sincronizar con el servidor
         sincronizarIndiceEjercicio(indice);
       }
     }
@@ -1871,7 +1786,6 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     }
   
-    // Control del input para cambiar el ejercicio por número
     const inputEjercicio = document.getElementById("input-ejercicio");
 
 inputEjercicio.addEventListener("change", () => {
@@ -1884,27 +1798,22 @@ inputEjercicio.addEventListener("change", () => {
   if (!isNaN(nuevo) && nuevo >= 1 && nuevo <= ejercicios.length) {
     indice = nuevo - 1;
     mostrarEjercicio();
-    // mostrarEjercicio() ya sincroniza con el servidor
   } else {
     alert(`El número debe estar entre 1 y ${ejercicios.length}`);
-    ///inputEjercicio.value = indice + 1;
   }
 });
 
 document.addEventListener("keydown", (e) => {
-  // Verifico si el editor está cerrado (display distinto de 'flex')
   const editorOverlay = document.getElementById("editor-overlay");
   const editorAbierto = editorOverlay.style.display === "flex";
 
   if (editorAbierto || document.getElementById("validacion-modal").style.display === "flex") {
-    // Si el editor o el modal de validación están abiertos, no hago nada para estas teclas
     return;
   }
 
   if (e.key === "ArrowRight") {
     
     e.preventDefault();
-    // console.log("Clickeo flecha derecha")
     let val = parseInt(inputEjercicio.value, 10);
     const max = parseInt(document.getElementById("total-ejercicios").textContent, 10);
     if (!isNaN(val) && val < max) {
@@ -1924,7 +1833,6 @@ document.addEventListener("keydown", (e) => {
 
 let tipoPlantilla = 'cpp'; // Puede ser 'cpp', 'vector', 'matriz', o 'lista'
   
-    // Plantilla básica C++
     const PLANTILLA_CPP = `#include <iostream>
 using namespace std;
   
@@ -2063,12 +1971,10 @@ function obtenerPlantillaActual() {
     }
 }
   
-    // Configuración y creación del editor CodeMirror
     let editorInstance;
     let editorIniciado = false;
   
     window.onload = () => {
-      // Restaurar estado del editor y texto si corresponde
       const editorWasOpen = localStorage.getItem('editorAbierto') === 'true';
       const editorText = localStorage.getItem('editorTexto') || '';
       const guardadoTimestamp = parseInt(localStorage.getItem('editorGuardadoHora'), 10);
@@ -2076,12 +1982,10 @@ function obtenerPlantillaActual() {
       const unaHoraMs = 60 * 60 * 1000;
       const dentroDeUnaHora = guardadoTimestamp && (ahora - guardadoTimestamp < unaHoraMs);
 
-      // Palabras clave de C++ para autocompletado
       const cppKeywords = [
         "if", "else", "while", "for", "do", "switch", "case", "break", "continue", "return", "struct", "class", "public", "private", "protected", "void", "int", "float", "double", "char", "bool", "true", "false", "namespace", "using", "include", "cout", "cin", "endl", "const", "static", "virtual", "override", "template", "typename", "try", "catch", "throw", "new", "delete", "this", "operator", "friend", "enum", "typedef", "sizeof", "main"
       ];
 
-      // Hint personalizado que combina anyword y palabras clave
       function cppHint(cm) {
         const cursor = cm.getCursor();
         const token = cm.getTokenAt(cursor);
@@ -2090,19 +1994,15 @@ function obtenerPlantillaActual() {
         const currentWord = token.string.slice(0, end - start);
         let list = [];
 
-        // Sugerencias de palabras clave
         if (currentWord.length > 0) {
           list = cppKeywords.filter(k => k.startsWith(currentWord));
         } else {
           list = cppKeywords.slice();
         }
 
-        // Sugerencias de anyword
         const anyword = CodeMirror.hint.anyword(cm) || {list:[]};
-        // Unir y filtrar duplicados
         let all = [...new Set([...list, ...anyword.list])];
 
-        // Snippet especial para coutcin
         if (currentWord === "coutcin") {
           all = [
             {
@@ -2113,7 +2013,6 @@ function obtenerPlantillaActual() {
                   {line: cursor.line, ch: start},
                   {line: cursor.line, ch: end}
                 );
-                // Colocar el cursor dentro de las comillas
                 cm.setCursor({line: cursor.line, ch: start + 7});
               }
             },
@@ -2125,12 +2024,10 @@ function obtenerPlantillaActual() {
               text: 'cout<<""<<endl;',
               displayText: 'cout<<""<<endl;',
               hint: function(cm, data, completion) {
-                // Insertar el snippet
                 cm.replaceRange('cout<<""<<endl;',
                   {line: cursor.line, ch: start},
                   {line: cursor.line, ch: end}
                 );
-                // Colocar el cursor dentro de las comillas
                 const pos = {line: cursor.line, ch: start + 7};
                 cm.setCursor(pos);
               }
@@ -2161,7 +2058,6 @@ function obtenerPlantillaActual() {
         highlightSelectionMatches: true, // Activar resaltado simple
         extraKeys: {
           "Shift-Space": "autocomplete", // Autocompletado manual (ahora Shift+Espacio)
-          // Selección múltiple tipo VS Code mejorada
           "Ctrl-D": function(cm) {
             let selections = cm.listSelections();
             let lastSel = selections[selections.length - 1];
@@ -2169,11 +2065,9 @@ function obtenerPlantillaActual() {
             let isEmpty = selText.length === 0;
             let word = selText;
             let from = lastSel.anchor, to = lastSel.head;
-            // Si no hay selección, selecciona la palabra bajo el cursor
             if (isEmpty) {
               let cursor = lastSel.head;
               let line = cm.getLine(cursor.line);
-              // Busca la palabra bajo el cursor
               let start = cursor.ch, end = cursor.ch;
               while (start > 0 && /\w/.test(line.charAt(start - 1))) start--;
               while (end < line.length && /\w/.test(line.charAt(end))) end++;
@@ -2181,15 +2075,11 @@ function obtenerPlantillaActual() {
               from = {line: cursor.line, ch: start};
               to = {line: cursor.line, ch: end};
               word = line.slice(start, end);
-              // Selecciona la palabra bajo el cursor
               cm.replaceSelection(word, "around");
-              // Actualiza la selección
               selections = cm.listSelections();
               lastSel = selections[selections.length - 1];
             }
-            // Buscar la siguiente ocurrencia de la palabra
             let searchCursor = cm.getSearchCursor(word, lastSel.head);
-            // Evita seleccionar ocurrencias ya seleccionadas
             let found = false;
             while (searchCursor.findNext()) {
               let alreadySelected = selections.some(sel =>
@@ -2202,10 +2092,8 @@ function obtenerPlantillaActual() {
                 break;
               }
             }
-            // Si no encuentra más, no hace nada
           },
           "Alt-Click": function(cm) { cm.addSelection(cm.getCursor()); }, // Selección múltiple con Alt+Click
-          // "Enter": función eliminada para evitar el autocompletado de llaves
         },
 
         hintOptions: {
@@ -2214,12 +2102,8 @@ function obtenerPlantillaActual() {
       });
 
 
-      // Personalizamos el resaltado de ocurrencias para palabras completas
-      //editorInstance.setOption("highlightSelectionMatches", {showToken: /\w/, annotateScrollbar: true, wordsOnly: true});
       editorInstance.setSize("100%", "100%");
 
-     // Restaurar texto si fue guardado hace menos de una hora
-// Solo restaurar si no hay conexión activa (modo multiusuario)
 if (editorText && dentroDeUnaHora && !socket) {
   editorInstance.setValue(editorText);
   editorIniciado = true;
@@ -2228,20 +2112,14 @@ if (editorText && dentroDeUnaHora && !socket) {
   console.log("paso mas de una hora o modo multiusuario activo", dentroDeUnaHora);
 }
 
-// Si el editor estaba abierto, lo abrimos (sin restricción de tiempo)
-// Solo si no hay socket (modo sin multiusuario)
 if (editorWasOpen && !socket) {
   setTimeout(() => {
     toggleEditor();
   }, 100); // Espera breve para asegurar que el editor esté inicializado
 }
 
-      // Guardar automáticamente el texto y estado del editor en cada cambio
-      // NOTA: Este código solo se ejecuta si NO hay socket (modo sin multiusuario)
-      // En modo multiusuario, los cambios se manejan en crearEditorCodeMirror
       if (!socket) {
         editorInstance.on('change', function(cm, change) {
-          // Evitar sincronización circular
           if (sincronizando) {
             sincronizando = false;
             return;
@@ -2254,18 +2132,14 @@ if (editorWasOpen && !socket) {
           localStorage.setItem('editorGuardadoHora', Date.now());
         });
 
-        // Sincronizar posición del cursor (solo en modo sin multiusuario)
         let cursorTimeout = null;
         editorInstance.on('cursorActivity', function(cm) {
-          // Este código solo se ejecuta en modo sin multiusuario
         });
       }
 
-      // Botón para abrir el formulario de función
       document.getElementById('crear-funcion-btn').addEventListener('click', function() {
         document.getElementById('formulario-funcion').style.display = 'block';
         document.getElementById('tipo-retorno').focus();
-        // Permitir Enter para insertar función desde cualquier input
         const form = document.getElementById('formulario-funcion');
         if (!form._enterListenerAdded) {
           form.addEventListener('keydown', function(e) {
@@ -2280,12 +2154,10 @@ if (editorWasOpen && !socket) {
       });
 
 
-      // Cancelar formulario
       document.getElementById('cancelar-funcion-btn').addEventListener('click', function() {
         document.getElementById('formulario-funcion').style.display = 'none';
       });
 
-      // Insertar función en el editor
       document.getElementById('insertar-funcion-btn').addEventListener('click', function() {
   const tipo = document.getElementById('tipo-retorno').value.trim() || 'int';
   const nombre = document.getElementById('nombre-funcion').value.trim() || 'miFuncion';
@@ -2322,7 +2194,6 @@ if (editorWasOpen && !socket) {
 
   document.getElementById('formulario-funcion').style.display = 'none';
 
-  // ✅ Copiar el nombre de la función
   navigator.clipboard.writeText(nombre).then(() => {
     console.log("Nombre de la función copiado al portapapeles:", nombre);
   }).catch(err => {
@@ -2342,7 +2213,6 @@ function toggleEditor() {
   const editorBtn = document.getElementById("abrir-editor");
 
   if (overlay.style.display === "flex") {
-    // Guardar estado de maximización antes de cerrar
     if (pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
       if (editorData) {
@@ -2356,14 +2226,12 @@ function toggleEditor() {
   } else {
     overlay.style.display = "flex";
     
-    // Restaurar estado de maximización de la pestaña actual
     if (pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
       if (editorData && editorData.editorSoloMax) {
         overlay.classList.add("fullscreen-editor");
         editorMaximizado = true;
         
-        // Actualizar el botón de maximizar
         const btnMaximizar = document.getElementById("maximizarSoloEditor");
         if (btnMaximizar) {
           btnMaximizar.textContent = "🗗";
@@ -2373,7 +2241,6 @@ function toggleEditor() {
         overlay.classList.remove("fullscreen-editor");
         editorMaximizado = false;
         
-        // Actualizar el botón de maximizar
         const btnMaximizar = document.getElementById("maximizarSoloEditor");
         if (btnMaximizar) {
           btnMaximizar.textContent = "🗖";
@@ -2386,7 +2253,6 @@ function toggleEditor() {
     
     editorBtn.style.display = "none";
     
-    // Refrescar editor activo si existe
     const editorActivo = obtenerEditorActivo();
     if (editorActivo) {
       editorActivo.refresh();
@@ -2398,7 +2264,6 @@ function toggleEditor() {
 }
 
   
-    // Función helper para obtener el editor activo
     function obtenerEditorActivo() {
       if (!pestañaActiva) return null;
       const editorData = editoresPorPestaña.get(pestañaActiva);
@@ -2417,14 +2282,11 @@ function toggleEditor() {
         if (outputContent) outputContent.textContent = "Esperando ejecución...";
       }
     }
-    // URLs para compilación - detectar automáticamente basándose en dónde se carga la página
     let compileServerURL = null; // Se establecerá cuando se encuentre una URL que funcione
     
-    // Función para obtener URLs del compilador (similar a la de Socket.IO)
     function obtenerURLsCompilador() {
       const urlsToTry = [];
       
-      // Detectar automáticamente la URL del servidor basándose en dónde se carga la página
       const currentOrigin = window.location.origin; // Ej: http://192.168.96.91:3002
       const currentHostname = window.location.hostname; // IP o dominio
       const currentPort = window.location.port;
@@ -2437,38 +2299,30 @@ function toggleEditor() {
         protocol: protocol
       });
       
-      // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página, pero cambiar el puerto a 3000
-      // Si accedes desde http://192.168.96.91:3002, el compilador estará en http://192.168.96.91:3000
       if (currentHostname) {
         if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-          // Es una IP de red, construir URL con puerto 3000
           const compileURL = `${protocol}//${currentHostname}:3000/compile`;
           urlsToTry.push(compileURL);
           console.log('🌐 URL de compilador detectada desde red:', compileURL);
         } else {
-          // Es localhost
           const compileURL = 'http://localhost:3000/compile';
           urlsToTry.push(compileURL);
           console.log('🏠 Usando localhost para compilador:', compileURL);
         }
       }
       
-      // PRIORIDAD 2: URLs desde config.js (si existe) - cambiar puerto a 3000
       if (typeof getServerURLs === 'function') {
         try {
           const configUrls = getServerURLs();
           console.log('📋 URLs desde config.js:', configUrls);
           configUrls.forEach(url => {
             if (url && typeof url === 'string') {
-              // Cambiar el puerto a 3000 y agregar /compile
               let compileURL = url;
-              // Reemplazar cualquier puerto con :3000, o agregar :3000 si no tiene puerto
               if (compileURL.includes(':')) {
                 compileURL = compileURL.replace(/:(\d+)(\/|$)/, ':3000$2');
               } else {
                 compileURL = compileURL.replace(/(https?:\/\/[^\/]+)(\/|$)/, '$1:3000$2');
               }
-              // Asegurar que termine con /compile
               if (!compileURL.endsWith('/compile')) {
                 compileURL = compileURL.replace(/\/$/, '') + '/compile';
               }
@@ -2499,7 +2353,6 @@ function toggleEditor() {
         }
       }
       
-      // PRIORIDAD 3: Fallback - localhost si no hay nada más
       if (urlsToTry.length === 0) {
         urlsToTry.push('http://localhost:3000/compile');
         console.log('⚠️ No se detectaron URLs, usando fallback localhost');
@@ -2509,12 +2362,10 @@ function toggleEditor() {
       return urlsToTry;
     }
     
-    // Obtener URLs de compilación
     let urlsCompilacion = obtenerURLsCompilador();
     
     let URL = compileServerURL;
     
-    // Función para intentar compilar con múltiples URLs
     function intentarCompilar(urls, index, sourceCode, input, outputContent, outputDiv, toggleBtn) {
       if (index >= urls.length) {
         outputDiv.classList.add("maximized");
@@ -2531,13 +2382,11 @@ function toggleEditor() {
       const serverURL = urls[index];
       console.log(`🔌 Intentando compilar con servidor ${index + 1}/${urls.length}: ${serverURL}`);
       
-      // Timeout para detectar si la compilación falla
       const compileTimeout = setTimeout(() => {
         console.log(`Compilación con ${serverURL} falló por timeout, intentando siguiente URL...`);
         intentarCompilar(urls, index + 1, sourceCode, input, outputContent, outputDiv, toggleBtn);
       }, 10000); // Timeout de 10 segundos
 
-      // Crear AbortController para timeout compatible
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
@@ -2559,7 +2408,6 @@ function toggleEditor() {
         return res.json();
       })
       .then(data => {
-        // Si llegamos aquí, la URL funciona, guardarla para futuras compilaciones
         compileServerURL = serverURL;
         URL = serverURL;
         console.log('✅ URL de compilación establecida:', serverURL);
@@ -2567,7 +2415,6 @@ function toggleEditor() {
         const output = data.output || "Sin salida";
         const partes = output.split("Mensaje original de compilador:");
         if (partes.length === 2) {
-          // Si hay mensaje del compilador, maximiza la salida
           outputDiv.classList.add("maximized");
           if (toggleBtn) {
             toggleBtn.textContent = "🗗";
@@ -2577,7 +2424,6 @@ function toggleEditor() {
             `<div style="color: darkgreen; font-weight: bold; margin-bottom: 1em;">${partes[0].trim()}</div>` +
             `<pre style="color: white; background: inherit; padding: 10px; border-radius: 5px;">${partes[1].trim()}</pre>`;
         } else if (/error|Error|compilador|compilation/i.test(output)) {
-          // Si detecta la palabra error, también maximiza
           outputDiv.classList.add("maximized");
           if (toggleBtn) {
             toggleBtn.textContent = "🗗";
@@ -2585,9 +2431,7 @@ function toggleEditor() {
           }
           outputContent.textContent = output;
         } else {
-          // Salida normal
           outputContent.textContent = output;
-          // Asegurar que el output sea visible
           outputDiv.style.display = 'block';
           outputContent.style.display = 'block';
         }
@@ -2596,7 +2440,6 @@ function toggleEditor() {
         clearTimeout(compileTimeout);
         clearTimeout(timeoutId);
         
-        // Log detallado del error
         console.error(`❌ Error al compilar con ${serverURL}:`, {
           name: err.name,
           message: err.message,
@@ -2604,18 +2447,15 @@ function toggleEditor() {
           stack: err.stack
         });
         
-        // Si es un error de timeout o conexión, intentar siguiente URL
         if (err.name === 'AbortError' || err.name === 'TypeError' || 
             err.message.includes('fetch') || err.message.includes('Failed to fetch') ||
             err.message.includes('NetworkError') || err.message.includes('network')) {
           console.log(`⚠️ Error de conexión con ${serverURL}, intentando siguiente URL...`);
-          // Mostrar mensaje temporal mientras intenta la siguiente URL
           if (index + 1 < urls.length) {
             outputContent.textContent = `Intentando conectar a servidor ${index + 2}/${urls.length}...`;
           }
           intentarCompilar(urls, index + 1, sourceCode, input, outputContent, outputDiv, toggleBtn);
         } else {
-          // Si es otro tipo de error (compilación/ejecución), mostrar el error
           outputDiv.classList.add("maximized");
           if (toggleBtn) {
             toggleBtn.textContent = "🗗";
@@ -2626,7 +2466,6 @@ function toggleEditor() {
       });
     }
     
-    // Ejecución de código llamando al backend que compila C++
     function ejecutarCodigo() {
   const editorActivo = obtenerEditorActivo();
   if (!editorActivo) {
@@ -2651,7 +2490,6 @@ function toggleEditor() {
     return;
   }
 
-  // Asegurar que el output sea visible
   outputDiv.style.display = 'block';
   outputContent.style.display = 'block';
   outputContent.style.visibility = 'visible';
@@ -2659,7 +2497,6 @@ function toggleEditor() {
 
   const input = inputArea.value;
 
-  // 1. Contar cantidad de variables que esperan ser ingresadas (por cin)
   const cinRegex = /cin\s*>>([^;]+)/g;
   let totalEntradasEsperadas = 0;
   let match;
@@ -2668,45 +2505,35 @@ function toggleEditor() {
     totalEntradasEsperadas += variables.length;
   }
 
-  // 2. Contar entradas proporcionadas por el usuario
   const entradasUsuario = input.trim().split(/\s+/).filter(e => e.length > 0);
   const totalEntradasUsuario = entradasUsuario.length;
 
-  // 3. Validar
   if (totalEntradasEsperadas > 0 && totalEntradasUsuario !== totalEntradasEsperadas) {
     alert(`⚠️ Advertencia: el código espera ${totalEntradasEsperadas} entradas, pero se ingresaron ${totalEntradasUsuario}.
 Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejecutará igual.`);
   }
 
-  // Mostrar mensaje de ejecución
   outputContent.textContent = "Ejecutando...";
   
-  // IMPORTANTE: Obtener las URLs de compilación cada vez que se ejecuta
-  // Esto asegura que si el usuario accede desde una IP diferente, se detecte correctamente
   const urlsCompilacionActualizadas = obtenerURLsCompilador();
   console.log('🔧 URLs de compilación actualizadas:', urlsCompilacionActualizadas);
   
-  // Si ya tenemos una URL que funciona, usarla directamente, pero también incluir las nuevas URLs por si cambió la conexión
   if (compileServerURL) {
-    // Verificar si la URL guardada sigue siendo válida (está en la lista de URLs actuales)
     if (urlsCompilacionActualizadas.includes(compileServerURL)) {
       console.log('✅ Usando URL de compilación guardada:', compileServerURL);
       intentarCompilar([compileServerURL], 0, sourceCode, input, outputContent, outputDiv, toggleBtn);
     } else {
-      // La URL guardada ya no es válida, usar las URLs actualizadas
       console.log('⚠️ URL de compilación guardada ya no es válida, usando URLs actualizadas');
       compileServerURL = null; // Limpiar la URL guardada
       intentarCompilar(urlsCompilacionActualizadas, 0, sourceCode, input, outputContent, outputDiv, toggleBtn);
     }
   } else {
-    // Si no hay URL guardada, usar las URLs actualizadas
     console.log('🔍 No hay URL de compilación guardada, probando todas las URLs');
     intentarCompilar(urlsCompilacionActualizadas, 0, sourceCode, input, outputContent, outputDiv, toggleBtn);
   }
 }
 
   
-    // Teclas rápidas para ejecutar, cerrar editor y restaurar plantilla
     document.addEventListener("keydown", function (e) {
       if ((e.key === "F9" || e.code === "F9") && document.getElementById("editor-overlay").style.display === "flex") {
         e.preventDefault();
@@ -2722,7 +2549,6 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
         if (toggleBtn) {
           toggleBtn.click();
         } else {
-          // Fallback: buscar cualquier toggleOutputSize en el output activo
           const outputDiv = document.querySelector(`.output[data-tab-id="${pestañaActiva}"]`);
           if (outputDiv) {
             const btn = outputDiv.querySelector('.toggleOutputSize');
@@ -2730,17 +2556,14 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
           }
         }
       }
-      // F4: Restaurar plantilla si el editor está abierto
       if ((e.key === "F4" || e.code === "F4") && document.getElementById("editor-overlay").style.display === "flex") {
         e.preventDefault();
         restaurarPlantilla();
       }
     });
   
-    // Botón para maximizar/minimizar salida (delegación de eventos)
     document.addEventListener("click", (e) => {
       if (e.target.classList.contains("toggleOutputSize")) {
-        // Buscar el output padre que contiene el botón
         const outputDiv = e.target.closest('.output');
         if (!outputDiv) return;
         
@@ -2758,9 +2581,7 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
       }
     });
   
-    // ---- VALIDACIÓN ANTES DE PASAR AL SIGUIENTE EJERCICIO ----
     let pegadoAutomatico = false;
-    // Abre modal con textarea para pegar código y validar
     function abrirModalValidacion() {
         if (indice < 0 || indice >= ejercicios.length) return;
 
@@ -2771,7 +2592,6 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
           return;
         }
       
-        //document.getElementById('caso-enunciado').textContent = actual.enunciado;
       
         const areaCodigo = document.getElementById('codigo-validacion');
         areaCodigo.value = "";
@@ -2797,12 +2617,10 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
   }
 
   
-    // Cierra modal validación
     function cerrarModalValidacion() {
       document.getElementById('validacion-modal').style.display = "none";
     }
   
-    // Función auxiliar para compilar código con reintentos de URL
     function compilarConReintentos(codigo, entrada) {
       return new Promise((resolve, reject) => {
         const urlsAProbar = compileServerURL ? [compileServerURL] : urlsCompilacion;
@@ -2816,7 +2634,6 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
           const serverURL = urls[index];
           console.log(`Intentando compilar (validación) con servidor ${index + 1}/${urls.length}:`, serverURL);
 
-          // Crear AbortController para timeout compatible
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -2837,7 +2654,6 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
             return res.json();
           })
           .then(data => {
-            // Si llegamos aquí, la URL funciona, guardarla para futuras compilaciones
             if (!compileServerURL) {
               compileServerURL = serverURL;
               URL = serverURL;
@@ -2847,12 +2663,10 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
           })
           .catch(err => {
             clearTimeout(timeoutId);
-            // Si es un error de timeout o conexión, intentar siguiente URL
             if (err.name === 'AbortError' || err.name === 'TypeError' || err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
               console.log(`Error con ${serverURL}:`, err.message);
               intentarCompilarAux(urls, index + 1);
             } else {
-              // Si es otro tipo de error (compilación/ejecución), rechazar con el error
               reject(err);
             }
           });
@@ -2862,108 +2676,87 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
       });
     }
     
-    // Probar el código del usuario contra los casos de prueba
     function probarValidacion() {
-  const codigoUsuario = document.getElementById('codigo-validacion').value.trim();
-  const resultadoArea = document.getElementById('resultado-validacion');
-
-  if (!codigoUsuario) {
-    alert("Por favor, pegá tu código antes de probar.");
-    return;
-  }
-
-  if (indice < 0 || indice >= ejercicios.length) {
-    alert("Ejercicio inválido.");
-    return;
-  }
-
-  const ejercicioActual = ejercicios[indice];
-
-  if (!ejercicioActual.casosDePrueba || ejercicioActual.casosDePrueba.length === 0) {
-    alert("Este ejercicio no tiene casos de prueba definidos.");
-    return;
-  }
-
-  resultadoArea.textContent = "Probando casos de prueba...";
-
-  let errores = [];
-  subirCodigo();
-
-  // Función para normalizar salidas (ignora espacios y saltos de línea)
-  const normalizar = str =>
-    (str || "")
-      .replace(/\s+/g, "") // elimina espacios, tabs y saltos de línea
-      .trim();
-
-  let promesas = ejercicioActual.casosDePrueba.map((caso, i) => {
-    console.log(caso.entrada, i);
-
-    return compilarConReintentos(codigoUsuario, caso.entrada)
-      .then(data => {
-        let salidaObtenida = normalizar(data.output);
-        let salidaEsperada = normalizar(caso.salida);
-
-        console.log("Obtenida:", salidaObtenida);
-        console.log("Esperada:", salidaEsperada);
-
-        if (salidaObtenida !== salidaEsperada) {
+      const codigoUsuario = document.getElementById('codigo-validacion').value.trim();
+      const resultadoArea = document.getElementById('resultado-validacion');
+  
+      if (!codigoUsuario) {
+        alert("Por favor, pegá tu código antes de probar.");
+        return;
+      }
+  
+      if (indice < 0 || indice >= ejercicios.length) {
+        alert("Ejercicio inválido.");
+        return;
+      }
+  
+      const ejercicioActual = ejercicios[indice];
+  
+      if (!ejercicioActual.casosDePrueba || ejercicioActual.casosDePrueba.length === 0) {
+        alert("Este ejercicio no tiene casos de prueba definidos.");
+        return;
+      }
+  
+      resultadoArea.textContent = "Probando casos de prueba...";
+  
+      let errores = [];
+      subirCodigo();
+      let promesas = ejercicioActual.casosDePrueba.map((caso, i) => {
+        console.log(caso.entrada, i);
+        return compilarConReintentos(codigoUsuario, caso.entrada)
+        .then(data => {
+          let salidaObtenida = (data.output || "").trim();
+          let salidaEsperada = (caso.salida || "").trim();
+          console.log(salidaObtenida);
+          console.log(salidaEsperada);
+          const normalizar = str => str.replace(/\r/g, "").trim();
+          salidaObtenida = normalizar(salidaObtenida);
+          salidaEsperada = normalizar(salidaEsperada);
+  
+          if (salidaObtenida !== salidaEsperada) {
+            errores.push({
+              indice: i + 1,
+              entrada: caso.entrada,
+              esperado: salidaEsperada,
+              obtenido: salidaObtenida
+            });
+            console.log("la salida fue distinta");
+          } else console.log("las salidas coinciden");
+        })
+        .catch(err => {
           errores.push({
             indice: i + 1,
             entrada: caso.entrada,
-            esperado: caso.salida,
-            obtenido: data.output
+            esperado: "(error en compilación o ejecución)",
+            obtenido: err.message || err.toString()
           });
-          console.log("la salida fue distinta");
-        } else {
-          console.log("las salidas coinciden");
-        }
-      })
-      .catch(err => {
-        errores.push({
-          indice: i + 1,
-          entrada: caso.entrada,
-          esperado: "(error en compilación o ejecución)",
-          obtenido: err.message || err.toString()
         });
       });
-  });
-
-  Promise.all(promesas).then(() => {
-    if (errores.length === 0) {
-      resultadoArea.textContent =
-        "¡Todos los casos de prueba pasaron correctamente! Avanzando al siguiente ejercicio.";
-
-      cerrarModalValidacion();
-
-      const overlay = document.getElementById("editor-overlay");
-      if (overlay.style.display === "flex") {
-        toggleEditor();
-      }
-
-      indice++;
-      mostrarEjercicio();
-      restaurarPlantilla();
-    } else {
-      let mensaje = "Algunos casos fallaron:\n\n";
-
-      errores.forEach(err => {
-        mensaje +=
-          `<span style="color:orange">Caso ${err.indice} (entrada: "${err.entrada}"):\nEsperado:</span>\n${err.esperado}\n` +
-          `<span style="color:white">Obtenido:</span>\n${err.obtenido}\n\n`;
-      });
-
-      resultadoArea.innerHTML = mensaje;
-    }
-  });
-}
   
-    // Función para copiar el contenido del editor
-    // Usar delegación de eventos para que funcione con todos los botones (incluso los creados dinámicamente)
+      Promise.all(promesas).then(() => {
+
+        if (errores.length === 0) {
+          resultadoArea.textContent = "¡Todos los casos de prueba pasaron correctamente! Avanzando al siguiente ejercicio.";
+          cerrarModalValidacion();
+          const overlay = document.getElementById("editor-overlay");
+          if (overlay.style.display === "flex") {
+            toggleEditor();
+          }
+          indice++;
+          mostrarEjercicio();
+          restaurarPlantilla();
+        } else {
+          let mensaje = "Algunos casos fallaron:\n\n";
+          errores.forEach(err => {
+            mensaje += `<span style="color:orange">Caso ${err.indice} (entrada: "${err.entrada}"):\nEsperado:</span>\n${err.esperado}\n<span style="color:white">Obtenido:</span>\n${err.obtenido}\n\n`;
+          });
+          resultadoArea.innerHTML = mensaje;
+        }
+      });
+    }
     document.addEventListener("click", (e) => {
-      // Verificar si el click fue en un botón de copiar código (el botón mismo o dentro de él)
       let btn = e.target;
       
-      // Si el click no fue directamente en el botón, buscar el botón padre
       if (btn.id !== "copiar-codigo-btn") {
         btn = btn.closest("#copiar-codigo-btn");
       }
@@ -2992,7 +2785,6 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
             alert("No se pudo copiar el código.");
           });
         } else {
-          // Fallback para navegadores que no soportan Clipboard API
           const textArea = document.createElement("textarea");
           textArea.value = texto;
           textArea.style.position = "fixed";
@@ -3021,7 +2813,6 @@ document.addEventListener("keydown", function (e) {
   const minutos = ahora.getMinutes();
   const ultimaCifra = minutos % 10;
 
-  // Verificamos si se presionó Alt (con o sin Shift) + la tecla numérica correspondiente
   const presionoAlt = e.altKey;
   const presionoShift = e.shiftKey;
   const codigoCorrecto = e.code === `Digit${ultimaCifra}`;
@@ -3046,12 +2837,10 @@ function descargarCodigo() {
 
   const contenido = editorActivo.getValue();
   
-  // Obtener el nombre de la pestaña activa
   let nombreArchivo = 'codigo.cpp';
   if (pestañaActiva) {
     const editorData = editoresPorPestaña.get(pestañaActiva);
     if (editorData && editorData.nombre) {
-      // Limpiar el nombre para que sea válido como nombre de archivo
       nombreArchivo = editorData.nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.cpp';
     }
   }
@@ -3065,13 +2854,11 @@ function descargarCodigo() {
   enlace.click();
   document.body.removeChild(enlace);
   
-  // Limpiar la URL del objeto después de un momento
   setTimeout(() => {
     window.URL.revokeObjectURL(url);
   }, 100);
 }
 
-// Atajo de teclado Ctrl+Shift+S para descargar código
 document.addEventListener("keydown", function (e) {
   if (e.ctrlKey && e.shiftKey && e.key === 'S') {
     e.preventDefault();
@@ -3080,14 +2867,12 @@ document.addEventListener("keydown", function (e) {
 });
 
 function subirCodigo() {
-  //Subir codigo con el enunciado
   const codigo = document.getElementById('codigo-validacion').value;
   const ahora = new Date();
   const fecha = ahora.toISOString().slice(0,10).replace(/-/g,"/");
   const hora = String(ahora.getHours()).padStart(2, '0') + ":" + String(ahora.getMinutes()).padStart(2, '0');
   const nombreArchivo = `Ejercicio${indice+1}_${hora}_${fecha}.cpp`;
 
-  // 👇 Obtenemos el enunciado actual y lo agregamos arriba del código
   const enunciado = ejercicios[indice]?.enunciado || "";
   const contenidoConEnunciado = `// EJERCICIO ${indice + 1}:\n// ${enunciado.replace(/\n/g, '\n// ')}\n\n${codigo}`;
 
@@ -3144,7 +2929,6 @@ function duplicarLinea(cm, direccion) {
 }
 
 document.addEventListener("keydown", function(e) {
-  //if (!editorInstance) return;
   const editorActivo = obtenerEditorActivo();
   if (!editorActivo) return;
 
@@ -3166,14 +2950,12 @@ document.addEventListener("keydown", function(e) {
     moverLinea(editorActivo, 1);
   }
 
-  // Duplicar línea arriba
   if ((e.ctrlKey && e.shiftKey && e.key === "ArrowUp") || e.altKey && e.key.toLowerCase() === "v") {
     e.preventDefault();
     e.stopPropagation();
     duplicarLinea(editorActivo, -1);
   }
 
-  // Duplicar línea abajo
   if ((e.ctrlKey && e.shiftKey && e.key === "ArrowDown") || e.altKey && e.key.toLowerCase() === "c") {
     e.preventDefault();
     e.stopPropagation();
@@ -3194,7 +2976,6 @@ let posicionCursorEditor = null;
 document.addEventListener("keydown", function(e) {
   if (e.key === "F11" || e.code === "F11") {
     e.preventDefault();
-    // Ciclar entre las cuatro plantillas: cpp -> vector -> matriz -> lista -> cpp
     if (tipoPlantilla === 'cpp') {
       tipoPlantilla = 'vector';
     } else if (tipoPlantilla === 'vector') {
@@ -3205,14 +2986,12 @@ document.addEventListener("keydown", function(e) {
       tipoPlantilla = 'cpp';
     }
     
-    // Aplicar la nueva plantilla al editor si está abierto y el código actual es una plantilla o está vacío
     const overlay = document.getElementById("editor-overlay");
     if (overlay && overlay.style.display === "flex" && pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
       if (editorData && editorData.editorInstance) {
         const editorActivo = editorData.editorInstance;
         const codigoActual = editorActivo.getValue();
-        // Solo aplicar si el código está vacío o es una de las plantillas
         if (codigoActual.trim() === '' || 
             codigoActual === PLANTILLA_CPP || 
             codigoActual === PLANTILLA_VECTOR || 
@@ -3231,7 +3010,6 @@ function modalValidarCodigo() {
     if (overlay.style.display === "flex") {
         abrirModalValidacion();
 
-        // Pegar automáticamente el código del editor activo
         const editorActivo = obtenerEditorActivo();
         const areaValidacion = document.getElementById("codigo-validacion");
 
@@ -3275,7 +3053,6 @@ function agregarPrototiposCpp(codigo) {
   const funciones = [];
   let indiceMain = -1;
 
-  // Buscar el índice donde comienza el main
   for (let i = 0; i < lineas.length; i++) {
     if (/int\s+main\s*\(/.test(lineas[i])) {
       indiceMain = i;
@@ -3288,7 +3065,6 @@ function agregarPrototiposCpp(codigo) {
     return codigo;
   }
 
-  // Buscar definiciones de funciones fuera del main
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i].trim();
     const match = linea.match(regexFuncion);
@@ -3303,16 +3079,13 @@ function agregarPrototiposCpp(codigo) {
         ? parametros
             .split(',')
             .map(p => {
-              // Ejemplo: "int v[]", "float x", "char nombre[20]"
               let partes = p.trim().split(/\s+/);
               let tipo = partes.slice(0, -1).join(' ');
               let nombre = partes[partes.length - 1] || '';
-              // Si el nombre termina con [] o [algo], agregarlo al tipo
               let arrayMatch = nombre.match(/(\[.*\])/);
               if (arrayMatch) {
                 tipo += arrayMatch[1];
               }
-              // Si solo hay un elemento, puede ser "int[]" o "int"
               if (partes.length === 1) {
                 tipo = partes[0];
               }
@@ -3325,7 +3098,6 @@ function agregarPrototiposCpp(codigo) {
     }
   }
 
-  // Obtener todos los prototipos ya presentes antes del main (normalizados)
   function normalizarPrototipo(str) {
     return str.replace(/\s+/g, '').replace(/;$/, '');
   }
@@ -3337,11 +3109,9 @@ function agregarPrototiposCpp(codigo) {
     }
   }
 
-  // Filtrar solo los prototipos que no están presentes (comparando normalizados)
   const prototiposFinales = funciones.filter(p => !prototiposExistentes.has(normalizarPrototipo(p)));
 
   if (prototiposFinales.length > 0) {
-    // Buscar el último prototipo antes del main
     let ultimaLineaPrototipo = -1;
     for (let i = 0; i < indiceMain; i++) {
       if (regexPrototipo.test(lineas[i].trim())) {
@@ -3350,14 +3120,12 @@ function agregarPrototiposCpp(codigo) {
     }
     let nuevasLineas;
     if (ultimaLineaPrototipo >= 0) {
-      // Insertar los nuevos prototipos justo después del último prototipo
       nuevasLineas = [
         ...lineas.slice(0, ultimaLineaPrototipo + 1),
         ...prototiposFinales,
         ...lineas.slice(ultimaLineaPrototipo + 1)
       ];
     } else {
-      // Si no hay prototipos, insertarlos antes del main y dejar una línea en blanco
       nuevasLineas = [
         ...lineas.slice(0, indiceMain),
         ...prototiposFinales,
@@ -3396,7 +3164,6 @@ btnMaximizarSoloEditor.addEventListener("click", () => {
     btnMaximizarSoloEditor.title = "Maximizar solo el editor";
     editorMaximizado = false;
   }
-  // Refrescar el editor activo de la pestaña actual
   const editorActivo = obtenerEditorActivo();
   if (editorActivo) {
     editorActivo.refresh();
@@ -3405,7 +3172,6 @@ btnMaximizarSoloEditor.addEventListener("click", () => {
 document.addEventListener("keydown", function(e) {
   if (e.key === "F3" || e.code === "F3") {
     e.preventDefault();
-    // Solo funcionar si el editor está abierto
     const overlay = document.getElementById("editor-overlay");
     if (overlay && pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
@@ -3421,7 +3187,6 @@ document.addEventListener("keydown", function(e) {
         editorMaximizado = false;
       }
       
-      // Actualizar el botón si existe
       const btnMaximizar = document.getElementById("maximizarSoloEditor");
       if (btnMaximizar) {
         if (editorData.editorSoloMax) {
@@ -3433,7 +3198,6 @@ document.addEventListener("keydown", function(e) {
         }
       }
       
-      // Refrescar el editor activo
       const editorActivo = obtenerEditorActivo();
       if (editorActivo) {
         setTimeout(() => {
@@ -3462,19 +3226,15 @@ document.addEventListener("keydown", function(e) {
 
   </script>  
   <script>
-    // ========== FUNCIONES SOCKET.IO ==========
     
-    // ========== GESTIÓN DE CORREO DE USUARIO EN LOCALSTORAGE ==========
     const CORREO_USUARIO_KEY = 'correoUsuario';
     const EXPIRACION_CORREO = 30 * 60 * 1000; // 30 minutos en milisegundos
     
-    // Validar formato de correo
     function validarCorreo(correo) {
       const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return regex.test(correo);
     }
     
-    // Guardar correo de usuario con expiración de 30 minutos
     function guardarCorreoUsuario(correo) {
       const datos = {
         correo: correo,
@@ -3483,7 +3243,6 @@ document.addEventListener("keydown", function(e) {
       localStorage.setItem(CORREO_USUARIO_KEY, JSON.stringify(datos));
     }
     
-    // Obtener correo de usuario guardado (si no ha expirado)
     function obtenerCorreoUsuario() {
       try {
         const datosStr = localStorage.getItem(CORREO_USUARIO_KEY);
@@ -3491,7 +3250,6 @@ document.addEventListener("keydown", function(e) {
         
         const datos = JSON.parse(datosStr);
         
-        // Verificar si ha expirado
         if (Date.now() > datos.expiracion) {
           localStorage.removeItem(CORREO_USUARIO_KEY);
           return null;
@@ -3505,7 +3263,6 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Limpiar correo de usuario guardado
     function limpiarCorreoUsuario() {
       localStorage.removeItem(CORREO_USUARIO_KEY);
       const inputUsuario = document.getElementById('input-usuario');
@@ -3514,14 +3271,12 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Cargar correo guardado al iniciar la página y conectar automáticamente
     function cargarCorreoGuardado() {
       const correoGuardado = obtenerCorreoUsuario();
       if (correoGuardado) {
         const inputUsuario = document.getElementById('input-usuario');
         if (inputUsuario) {
           inputUsuario.value = correoGuardado;
-          // Conectar automáticamente después de un pequeño delay para asegurar que el DOM esté listo
           setTimeout(() => {
             conectarUsuario();
           }, 100);
@@ -3529,7 +3284,6 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Listener para Alt + S para limpiar correo guardado y archivo seleccionado
     document.addEventListener('keydown', (e) => {
       if (e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
@@ -3539,19 +3293,15 @@ document.addEventListener("keydown", function(e) {
       }
     });
     
-    // Variable global para almacenar los correos registrados
     let correosRegistrados = [];
     let indiceSugerenciaSeleccionada = -1;
     
-    // Función para cargar correos registrados del servidor
     async function cargarCorreosRegistrados() {
       try {
-        // Detectar la URL del servidor (mismo origen o localhost:3002)
         const currentOrigin = window.location.origin;
         const currentHostname = window.location.hostname;
         let serverURL = currentOrigin;
         
-        // Si estamos en localhost, usar localhost:3002
         if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
           serverURL = 'http://localhost:3002';
         }
@@ -3569,12 +3319,10 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Función para mostrar sugerencias de correos
     function mostrarSugerenciasCorreo(valorInput) {
       const sugerenciasDiv = document.getElementById('sugerencias-correo');
       if (!sugerenciasDiv) return;
       
-      // Si el input está vacío, no mostrar sugerencias
       if (!valorInput || valorInput.trim() === '') {
         sugerenciasDiv.style.display = 'none';
         indiceSugerenciaSeleccionada = -1;
@@ -3583,19 +3331,16 @@ document.addEventListener("keydown", function(e) {
       
       const valorLower = valorInput.toLowerCase().trim();
       
-      // Filtrar correos que coincidan con lo escrito
       const correosFiltrados = correosRegistrados.filter(correo => 
         correo.toLowerCase().includes(valorLower)
       );
       
-      // Si no hay coincidencias, ocultar el menú
       if (correosFiltrados.length === 0) {
         sugerenciasDiv.style.display = 'none';
         indiceSugerenciaSeleccionada = -1;
         return;
       }
       
-      // Mostrar sugerencias
       sugerenciasDiv.innerHTML = '';
       correosFiltrados.forEach((correo, index) => {
         const item = document.createElement('div');
@@ -3603,11 +3348,9 @@ document.addEventListener("keydown", function(e) {
         item.style.cssText = 'padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #555; color: white;';
         item.style.transition = 'background-color 0.2s';
         
-        // Estilo hover
         item.onmouseenter = function() {
           this.style.backgroundColor = '#555';
           indiceSugerenciaSeleccionada = index;
-          // Remover selección de otros items
           Array.from(sugerenciasDiv.children).forEach((child, i) => {
             if (i !== index) {
               child.style.backgroundColor = '';
@@ -3619,7 +3362,6 @@ document.addEventListener("keydown", function(e) {
           this.style.backgroundColor = '';
         };
         
-        // Click para seleccionar
         item.onclick = function() {
           const inputUsuario = document.getElementById('input-usuario');
           if (inputUsuario) {
@@ -3637,28 +3379,23 @@ document.addEventListener("keydown", function(e) {
       indiceSugerenciaSeleccionada = -1;
     }
     
-    // Configurar eventos del input de correo
     function configurarAutocompletadoCorreo() {
       const inputUsuario = document.getElementById('input-usuario');
       if (!inputUsuario) return;
       
-      // Evento input - mostrar sugerencias mientras escribe
       inputUsuario.addEventListener('input', function(e) {
         mostrarSugerenciasCorreo(e.target.value);
       });
       
-      // Evento focus - mostrar sugerencias si hay texto
       inputUsuario.addEventListener('focus', function(e) {
         if (e.target.value && e.target.value.trim() !== '') {
           mostrarSugerenciasCorreo(e.target.value);
         }
       });
       
-      // Evento keydown - navegar con teclado
       inputUsuario.addEventListener('keydown', function(e) {
         const sugerenciasDiv = document.getElementById('sugerencias-correo');
         if (!sugerenciasDiv || sugerenciasDiv.style.display === 'none') {
-          // Si presiona abajo y hay sugerencias, mostrar la primera
           if (e.key === 'ArrowDown' && inputUsuario.value && inputUsuario.value.trim() !== '') {
             e.preventDefault();
             mostrarSugerenciasCorreo(inputUsuario.value);
@@ -3676,31 +3413,25 @@ document.addEventListener("keydown", function(e) {
         
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          // Remover selección anterior
           if (indiceSugerenciaSeleccionada >= 0 && items[indiceSugerenciaSeleccionada]) {
             items[indiceSugerenciaSeleccionada].style.backgroundColor = '';
           }
-          // Mover hacia abajo
           indiceSugerenciaSeleccionada = (indiceSugerenciaSeleccionada + 1) % items.length;
           items[indiceSugerenciaSeleccionada].style.backgroundColor = '#555';
           items[indiceSugerenciaSeleccionada].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
-          // Remover selección anterior
           if (indiceSugerenciaSeleccionada >= 0 && items[indiceSugerenciaSeleccionada]) {
             items[indiceSugerenciaSeleccionada].style.backgroundColor = '';
           }
-          // Mover hacia arriba
           indiceSugerenciaSeleccionada = indiceSugerenciaSeleccionada <= 0 ? items.length - 1 : indiceSugerenciaSeleccionada - 1;
           items[indiceSugerenciaSeleccionada].style.backgroundColor = '#555';
           items[indiceSugerenciaSeleccionada].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          // Seleccionar la sugerencia actual si hay una seleccionada
           if (indiceSugerenciaSeleccionada >= 0 && items[indiceSugerenciaSeleccionada]) {
             items[indiceSugerenciaSeleccionada].click();
           } else {
-            // Si no hay sugerencia seleccionada, intentar conectar
             conectarUsuario();
           }
         } else if (e.key === 'Escape') {
@@ -3709,7 +3440,6 @@ document.addEventListener("keydown", function(e) {
         }
       });
       
-      // Ocultar sugerencias cuando se hace click fuera
       document.addEventListener('click', function(e) {
         const sugerenciasDiv = document.getElementById('sugerencias-correo');
         const inputUsuario = document.getElementById('input-usuario');
@@ -3722,25 +3452,19 @@ document.addEventListener("keydown", function(e) {
       });
     }
     
-    // Cargar correo guardado cuando se carga la página
     window.addEventListener('DOMContentLoaded', () => {
       cargarCorreoGuardado();
-      // Cargar correos registrados para el autocompletado
       cargarCorreosRegistrados();
-      // Configurar autocompletado del input de correo
       configurarAutocompletadoCorreo();
     });
     
-    // También cargar correos cuando se muestra el modal (por si se abre después)
     const modalUsuario = document.getElementById('modal-usuario');
     if (modalUsuario) {
-      // Observar cuando el modal se muestra
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const modal = mutation.target;
             if (modal.style.display !== 'none' && modal.style.display !== '') {
-              // El modal se mostró, cargar correos si no están cargados
               if (correosRegistrados.length === 0) {
                 cargarCorreosRegistrados();
               }
@@ -3764,38 +3488,27 @@ document.addEventListener("keydown", function(e) {
         return;
       }
 
-      // Detectar automáticamente la URL del servidor basándose en dónde se carga la página
-      // window.location.origin ya incluye protocolo, hostname y puerto completo
-      // Ejemplo: si accedes desde http://192.168.96.91:3002, origin será "http://192.168.96.91:3002"
       const currentOrigin = window.location.origin;
       const currentHostname = window.location.hostname; // IP o dominio (ej: "192.168.96.91" o "localhost")
       const currentPort = window.location.port || '3002'; // Puerto desde la URL, o 3002 por defecto
       
-      // Construir URL del servidor usando el mismo hostname y puerto desde donde se carga la página
       const protocol = window.location.protocol; // "http:" o "https:"
       const serverURLFromOrigin = currentOrigin; // Usar origin directamente (ya tiene todo)
       
-      // Array de URLs a intentar en orden de prioridad
       let urlsToTry = [];
       
-      // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página
-      // Esto funciona perfectamente cuando accedes desde otra máquina en la red
-      // Si accedes desde http://192.168.96.91:3002, el socket se conectará a esa misma URL
       if (currentHostname && currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
         urlsToTry.push(serverURLFromOrigin);
         console.log('🌐 Detectada URL de red desde window.location.origin:', serverURLFromOrigin);
       }
       
-      // PRIORIDAD 2: Si estamos en localhost, usar localhost
       if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
         urlsToTry.push('http://localhost:3002');
         console.log('🏠 Usando localhost para conexión');
       }
       
-      // PRIORIDAD 3: URLs desde config.js (si existe)
       if (typeof getServerURLs === 'function') {
         const configUrls = getServerURLs();
-        // Agregar URLs de config que no estén ya en la lista
         configUrls.forEach(url => {
           if (!urlsToTry.includes(url)) {
             urlsToTry.push(url);
@@ -3808,14 +3521,12 @@ document.addEventListener("keydown", function(e) {
         }
       }
       
-      // PRIORIDAD 4: Fallback - localhost si no hay nada más
       if (urlsToTry.length === 0) {
         urlsToTry.push('http://localhost:3002');
       }
       
       console.log('🔗 URLs a intentar:', urlsToTry);
       
-      // Intentar conectarse a cada URL en orden hasta que una funcione
       intentarConectar(urlsToTry, 0, correoUsuario);
     }
 
@@ -3828,7 +3539,6 @@ document.addEventListener("keydown", function(e) {
         return;
       }
 
-      // Limpiar socket anterior si existe
       if (socket) {
         socket.removeAllListeners();
         socket.disconnect();
@@ -3838,7 +3548,6 @@ document.addEventListener("keydown", function(e) {
       const serverURL = urls[index];
       console.log(`🔌 Intentando conectar a servidor ${index + 1}/${urls.length}: ${serverURL}`);
       
-      // Crear nueva conexión socket con opciones mejoradas
       socket = io(serverURL, {
         timeout: 10000, // Timeout de 10 segundos (aumentado)
         reconnection: false, // Desactivar reconexión automática para poder intentar otra URL
@@ -3849,14 +3558,12 @@ document.addEventListener("keydown", function(e) {
 
       let connectionEstablished = false;
 
-      // Timeout para detectar si la conexión falla
       const connectionTimeout = setTimeout(() => {
         if (!connectionEstablished && socket && !socket.connected) {
           console.log(`⏱️ Timeout: Conexión a ${serverURL} no respondió en 10 segundos, intentando siguiente URL...`);
           socket.removeAllListeners();
           socket.disconnect();
           socket = null;
-          // Intentar siguiente URL
           intentarConectar(urls, index + 1, correoUsuario);
         }
       }, 10000);
@@ -3866,16 +3573,13 @@ document.addEventListener("keydown", function(e) {
         clearTimeout(connectionTimeout);
         console.log('✅ ¡Conectado exitosamente al servidor:', serverURL, '!');
         
-        // Registrar listeners solo una vez cuando la conexión sea exitosa
         if (!socketListenersRegistrados) {
           registrarSocketListeners(correoUsuario);
           socketListenersRegistrados = true;
         }
         
-        // Iniciar verificación periódica de conexión
         iniciarVerificacionConexion();
         
-        // Obtener el nombre del archivo actual si está disponible
         const archivoGuardado = obtenerArchivoSeleccionado();
         const nombreArchivoParaEnviar = nombreArchivoActual || (archivoGuardado ? archivoGuardado.nombreArchivo : null);
         
@@ -3896,11 +3600,9 @@ document.addEventListener("keydown", function(e) {
         socket.disconnect();
         socket = null;
         
-        // Resetear flag de listeners si la conexión falla completamente
         if (index + 1 >= urls.length) {
           socketListenersRegistrados = false;
         } else {
-          // Intentar siguiente URL después de un pequeño delay
           setTimeout(() => {
             intentarConectar(urls, index + 1, correoUsuario);
           }, 500);
@@ -3910,14 +3612,12 @@ document.addEventListener("keydown", function(e) {
       socket.on('disconnect', (reason) => {
         if (!connectionEstablished) return;
         console.log('🔌 Desconectado del servidor. Razón:', reason);
-        // Si hay una función de vaciar editores disponible, llamarla
         if (vaciarEditoresPorDesconexion) {
           vaciarEditoresPorDesconexion();
         }
       });
     }
 
-    // Función para enviar el índice de ejercicio al servidor
     function sincronizarIndiceEjercicio(indiceEjercicio) {
       if (socket && socket.connected && miUsuario) {
         socket.emit('actualizar-indice-ejercicio', { 
@@ -3928,194 +3628,491 @@ document.addEventListener("keydown", function(e) {
       }
     }
 
-    // Función para registrar todos los event listeners de socket (solo una vez)
-function registrarSocketListeners(correoUsuario) {
-  if (!socket) return;
+    function registrarSocketListeners(correoUsuario) {
+      if (!socket) return;
 
-  socket.on('usuario-confirmado', (data) => {
-    miUsuario = data.username;
-    miColor = data.color;
-
-    guardarCorreoUsuario(data.username);
-
-    if (data.indiceEjercicio !== undefined) {
-      const indiceGuardado = data.indiceEjercicio;
-      const nombreArchivoDelIndice = data.nombreArchivo;
-
-      const archivoActual =
-        nombreArchivoActual ||
-        (obtenerArchivoSeleccionado()
-          ? obtenerArchivoSeleccionado().nombreArchivo
-          : null);
-
-      if (nombreArchivoDelIndice && nombreArchivoDelIndice === archivoActual) {
-        if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
-          if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
-            indice = indiceGuardado;
-            sessionStorage.setItem("indice", indice);
-            if (document.querySelector('button[onclick="anterior()"]')) {
-              mostrarEjercicio();
+      socket.on('usuario-confirmado', (data) => {
+        miUsuario = data.username;
+        miColor = data.color;
+        
+        guardarCorreoUsuario(data.username);
+        
+        if (data.indiceEjercicio !== undefined) {
+          const indiceGuardado = data.indiceEjercicio;
+          const nombreArchivoDelIndice = data.nombreArchivo;
+          
+          const archivoActual = nombreArchivoActual || (obtenerArchivoSeleccionado() ? obtenerArchivoSeleccionado().nombreArchivo : null);
+          
+          if (nombreArchivoDelIndice && nombreArchivoDelIndice === archivoActual) {
+            if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+              if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+                indice = indiceGuardado;
+                sessionStorage.setItem("indice", indice);
+                console.log(`📚 Índice de ejercicio cargado desde servidor: ${indice} para archivo: ${nombreArchivoDelIndice}`);
+                if (document.querySelector('button[onclick="anterior()"]')) {
+                  mostrarEjercicio();
+                }
+              }
+            } else {
+              sessionStorage.setItem("indiceServidor", indiceGuardado);
+              sessionStorage.setItem("nombreArchivoIndiceServidor", nombreArchivoDelIndice);
+              console.log(`📚 Índice de ejercicio guardado para cuando se carguen los ejercicios: ${indiceGuardado} para archivo: ${nombreArchivoDelIndice}`);
             }
+          } else if (!nombreArchivoDelIndice || !archivoActual) {
+            if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+              if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+                indice = indiceGuardado;
+                sessionStorage.setItem("indice", indice);
+                console.log(`📚 Índice de ejercicio cargado desde servidor (sin verificación de archivo): ${indice}`);
+                if (document.querySelector('button[onclick="anterior()"]')) {
+                  mostrarEjercicio();
+                }
+              }
+            } else {
+              sessionStorage.setItem("indiceServidor", indiceGuardado);
+              console.log(`📚 Índice de ejercicio guardado (sin verificación de archivo): ${indiceGuardado}`);
+            }
+          } else {
+            console.log(`⚠️ El índice recibido es para el archivo "${nombreArchivoDelIndice}" pero el archivo actual es "${archivoActual}". No se usará el índice guardado.`);
+          }
+        }
+        
+        const modalReconexion = document.getElementById('modal-reconexion');
+        const estabaReconectando = modalReconexion && modalReconexion.style.display === 'flex';
+        
+        if (intervaloReconexion) {
+          clearInterval(intervaloReconexion);
+          intervaloReconexion = null;
+        }
+        
+        if (estabaReconectando) {
+          console.log('✅ Reconexión exitosa. Recargando página...');
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          return; // No continuar con el resto del código, la página se recargará
+        }
+        
+        document.getElementById('modal-usuario').style.display = 'none';
+        document.getElementById('usuarios-conectados').style.display = 'block';
+        
+        const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
+        if (minimizarBtn && !minimizarBtn.hasAttribute('data-listener-added')) {
+          minimizarBtn.addEventListener('click', toggleMenuUsuarios);
+          minimizarBtn.setAttribute('data-listener-added', 'true');
+        }
+
+        const toggleCursos = document.getElementById('toggle-cursos-remotos');
+        if (toggleCursos && !toggleCursos.hasAttribute('data-listener-added')) {
+          toggleCursos.addEventListener('click', toggleCursosRemotos);
+          toggleCursos.setAttribute('data-listener-added', 'true');
+        }
+
+        const toggleColaboracion = document.getElementById('toggle-colaboracion');
+        if (toggleColaboracion && !toggleColaboracion.hasAttribute('data-listener-added')) {
+          toggleColaboracion.addEventListener('click', toggleColaboracion);
+          toggleColaboracion.setAttribute('data-listener-added', 'true');
+          if (permitirColaboracion) {
+            toggleColaboracion.classList.add('active');
+          } else {
+            toggleColaboracion.classList.remove('active');
+          }
+        }
+
+        inicializarArrastreMenu();
+
+        inicializarSistemaPestañas();
+
+        if (data.documentos && data.documentos.length > 0) {
+          data.documentos.forEach(doc => {
+            documentosDisponibles.set(doc.tabId, doc);
+            crearPestañaUI(doc.tabId, doc.nombre, false);
+          });
+          actualizarEstadoVisualPestañas();
+          if (data.documentos.length > 0) {
+            cambiarPestaña(data.documentos[0].tabId);
           }
         } else {
-          sessionStorage.setItem("indiceServidor", indiceGuardado);
-          sessionStorage.setItem(
-            "nombreArchivoIndiceServidor",
-            nombreArchivoDelIndice
-          );
+          crearNuevaPestaña();
         }
-      } else if (!nombreArchivoDelIndice || !archivoActual) {
-        if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
-          if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
-            indice = indiceGuardado;
-            sessionStorage.setItem("indice", indice);
-            if (document.querySelector('button[onclick="anterior()"]')) {
-              mostrarEjercicio();
+        
+        setTimeout(() => {
+          const editorWasOpen = localStorage.getItem('editorAbierto') === 'true';
+          if (editorWasOpen) {
+            const overlay = document.getElementById("editor-overlay");
+            const editorBtn = document.getElementById("abrir-editor");
+            if (overlay && overlay.style.display !== "flex") {
+              toggleEditor();
             }
           }
-        } else {
-          sessionStorage.setItem("indiceServidor", indiceGuardado);
+        }, 500); // Esperar a que se inicialice todo el sistema de pestañas
+      });
+
+      socket.on('pestaña-creada', (data) => {
+        documentosDisponibles.set(data.tabId, { nombre: data.nombre, codigo: data.codigo, creadorSocketId: data.creadorSocketId });
+        crearPestañaUI(data.tabId, data.nombre, false);
+        actualizarEstadoVisualPestañas();
+        if (data.creadorSocketId === socket.id) {
+          setTimeout(() => {
+            cambiarPestaña(data.tabId);
+          }, 100);
         }
+      });
+
+      socket.on('codigo-actual', (data) => {
+        const { tabId, codigo } = data;
+        const codigoServidor = codigo || '';
+        const editorData = editoresPorPestaña.get(tabId);
+        
+        if (editorData && editorData.editorInstance) {
+          const codigoActual = editorData.editorInstance.getValue();
+          
+          if (codigoServidor.trim() !== '' && codigoServidor !== codigoActual) {
+            sincronizando = true;
+            editorData.editorInstance.setValue(codigoServidor);
+            editorData.codigo = codigoServidor;
+          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR || codigoActual === PLANTILLA_MATRIZ || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
+            sincronizando = true;
+            editorData.editorInstance.setValue(obtenerPlantillaActual());
+            editorData.codigo = editorData.editorInstance.getValue();
+          }
+          
+          if (codigoGuardadoAntesDesconexion.has(tabId)) {
+            const codigoGuardado = codigoGuardadoAntesDesconexion.get(tabId);
+            if (codigoGuardado && codigoGuardado.trim() !== '') {
+              setTimeout(() => {
+                if (editorData && editorData.editorInstance && socket && socket.connected) {
+                  sincronizando = true;
+                  editorData.editorInstance.setValue(codigoGuardado);
+                  editorData.codigo = codigoGuardado;
+                  console.log(`✅ Código restaurado para pestaña ${tabId} después de reconexión`);
+                  
+                  if (puedeEditarPestaña(tabId)) {
+                    const lineasCodigoGuardado = codigoGuardado.split('\n');
+                    const ultimaLinea = lineasCodigoGuardado.length - 1;
+                    const ultimoChar = lineasCodigoGuardado[ultimaLinea] ? lineasCodigoGuardado[ultimaLinea].length : 0;
+                    
+                    socket.emit('cambio-codigo', {
+                      cambios: {
+                        codigo: codigoGuardado,
+                        from: { line: 0, ch: 0 },
+                        to: { line: ultimaLinea, ch: ultimoChar },
+                        text: lineasCodigoGuardado
+                      },
+                      usuario: miUsuario,
+                      tabId: tabId
+                    });
+                  }
+                  
+                  codigoGuardadoAntesDesconexion.delete(tabId);
+                }
+              }, 500);
+            }
+          }
+        } else if (!editorData) {
+          const docExistente = documentosDisponibles.get(tabId) || {};
+          documentosDisponibles.set(tabId, { 
+            ...docExistente, 
+            codigo: codigoServidor,
+            creadorSocketId: docExistente.creadorSocketId
+          });
+        }
+      });
+
+      socket.on('codigo-actualizado', (data) => {
+        if (data.socketId === socket.id) return;
+        
+        const { tabId, lineaInsercion, lineasInsertadas } = data;
+        const editorData = editoresPorPestaña.get(tabId);
+        if (!editorData || !editorData.editorInstance) return;
+
+        sincronizando = true;
+        const nuevoCodigo = data.cambios.codigo;
+        const cursor = editorData.editorInstance.getCursor();
+        
+        let nuevoCursor = cursor;
+        if (lineaInsercion !== null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
+          nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
+        }
+        
+        editorData.editorInstance.setValue(nuevoCodigo);
+        editorData.editorInstance.setCursor(nuevoCursor);
+        editorData.codigo = nuevoCodigo;
+        
+        setTimeout(() => {
+          if (mostrarCursosRemotos && tabId === pestañaActiva && editorData.cursosRemotos) {
+            editorData.cursosRemotos.forEach((curso, socketId) => {
+              if (curso.line !== undefined && curso.ch !== undefined) {
+                if (curso.line < editorData.editorInstance.lineCount()) {
+                  const maxCh = editorData.editorInstance.getLine(curso.line).length;
+                  const ch = Math.min(curso.ch, maxCh);
+                  actualizarCursoRemotoEnPestaña(tabId, socketId, curso.username, curso.color, curso.line, ch);
+                } else {
+                  eliminarCursoRemotoEnPestaña(tabId, socketId);
+                }
+              }
+            });
+          }
+        }, 100);
+        
+        mostrarIndicadorSincronizacion();
+      });
+
+      socket.on('usuario-conectado', (data) => {
+        console.log(`${data.username} se conectó`);
+        mostrarIndicadorSincronizacion();
+        setTimeout(() => {
+        }, 100);
+      });
+
+      socket.on('usuario-desconectado', (data) => {
+        console.log('Usuario desconectado');
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData.cursosRemotos) {
+            eliminarCursoRemotoEnPestaña(tabId, data.socketId);
+          }
+        });
+      });
+
+      socket.on('usuario-salio-pestaña', (data) => {
+        const { tabId, socketId } = data;
+        const editorData = editoresPorPestaña.get(tabId);
+        if (editorData && editorData.cursosRemotos) {
+          eliminarCursoRemotoEnPestaña(tabId, socketId);
+          
+          if (editorData.cursosRemotos.has(socketId)) {
+            editorData.cursosRemotos.delete(socketId);
+          }
+        }
+      });
+
+      socket.on('usuario-unido-pestaña', (data) => {
+        const { socketId, usuario, color } = data;
+        const usuarioInfo = usuariosPorSocketId.get(socketId);
+        if (usuarioInfo) {
+          usuarioInfo.pestañaActiva = data.tabId;
+        } else {
+          usuariosPorSocketId.set(socketId, {
+            username: usuario,
+            color: color,
+            pestañaActiva: data.tabId
+          });
+        }
+      });
+
+      socket.on('cursor-actualizado', (data) => {
+        if (data.socketId === socket.id) return;
+        
+        const { tabId } = data;
+        
+        const editorData = editoresPorPestaña.get(tabId);
+        if (!editorData) return;
+
+        if (!editorData.cursosRemotos) {
+          editorData.cursosRemotos = new Map();
+        }
+
+        if (data.line !== undefined && data.ch !== undefined && data.line !== null && data.ch !== null) {
+          const cursoExistente = editorData.cursosRemotos.get(data.socketId);
+          if (!cursoExistente) {
+            editorData.cursosRemotos.set(data.socketId, {
+              marker: null,
+              username: data.usuario,
+              color: data.color,
+              line: data.line,
+              ch: data.ch
+            });
+          } else {
+            cursoExistente.line = data.line;
+            cursoExistente.ch = data.ch;
+            cursoExistente.username = data.usuario;
+            cursoExistente.color = data.color;
+          }
+        }
+        
+        if (tabId !== pestañaActiva) {
+          const curso = editorData.cursosRemotos.get(data.socketId);
+          if (curso && curso.marker) {
+            curso.marker.clear();
+            curso.marker = null;
+          }
+          return; // IMPORTANTE: Salir aquí para no mostrar en pestañas no activas
+        }
+        
+        if (mostrarCursosRemotos) {
+          actualizarCursoRemotoEnPestaña(tabId, data.socketId, data.usuario, data.color, data.line, data.ch);
+        } else {
+          const curso = editorData.cursosRemotos.get(data.socketId);
+          if (curso && curso.marker) {
+            curso.marker.clear();
+            curso.marker = null;
+          }
+        }
+      });
+
+      socket.on('documentos-actualizados', (documentos) => {
+        documentos.forEach(doc => {
+          if (!documentosDisponibles.has(doc.tabId)) {
+            documentosDisponibles.set(doc.tabId, doc);
+            crearPestañaUI(doc.tabId, doc.nombre, false);
+          } else {
+            const docExistente = documentosDisponibles.get(doc.tabId);
+            if (docExistente) {
+              docExistente.creadorSocketId = doc.creadorSocketId;
+            }
+          }
+        });
+        actualizarEstadoVisualPestañas();
+      });
+
+      socket.on('usuarios-actualizados', (usuarios) => {
+        actualizarListaUsuarios(usuarios);
+      });
+
+      socket.on('colaboracion-desactivada-global', () => {
+        if (permitirColaboracion) {
+          permitirColaboracion = false;
+          const toggle = document.getElementById('toggle-colaboracion');
+          if (toggle) {
+            toggle.classList.remove('active');
+          }
+          actualizarEstadoSoloLecturaTodos();
+          
+          actualizarEstadoVisualPestañas();
+          
+          moverAhojaPropia();
+        }
+      });
+
+      socket.on('contraseña-verificada', (data) => {
+        const toggle = document.getElementById('toggle-colaboracion');
+        
+        if (data.valida) {
+          permitirColaboracion = true;
+          if (toggle) {
+            toggle.classList.add('active');
+          }
+          actualizarEstadoSoloLecturaTodos();
+          
+          actualizarEstadoVisualPestañas();
+        } else {
+          alert('Contraseña incorrecta. La colaboración no se activó.');
+        }
+      });
+
+      socket.on('invitacion-posicion', (data) => {
+        const { tabId, line, ch, usuario, color, socketId } = data;
+        
+        const overlay = document.getElementById("editor-overlay");
+        const editorCerrado = !overlay || overlay.style.display !== "flex";
+        
+        if (editorCerrado) {
+          toggleEditor();
+          setTimeout(() => {
+            navegarAPosicionInvitada(tabId, line, ch, usuario, color);
+          }, 200);
+          return;
+        }
+        
+        navegarAPosicionInvitada(tabId, line, ch, usuario, color);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Desconectado del servidor');
+        if (vaciarEditoresPorDesconexion) {
+          vaciarEditoresPorDesconexion();
+        }
+      });
+      
+      vaciarEditoresPorDesconexion = function() {
+        limpiarEjercicios();
+        
+        mostrarIndicadorSincronizacion();
+        
+        const modalReconexion = document.getElementById('modal-reconexion');
+        if (modalReconexion) {
+          modalReconexion.style.display = 'flex';
+        }
+        
+        if (intervaloReconexion) {
+          clearInterval(intervaloReconexion);
+          intervaloReconexion = null;
+        }
+        
+        if (miUsuario) {
+          intervaloReconexion = setInterval(() => {
+            const modal = document.getElementById('modal-reconexion');
+            if (modal && modal.style.display === 'flex' && (!socket || !socket.connected)) {
+              console.log('🔄 Intentando reconectar automáticamente...');
+              const correoUsuario = obtenerCorreoUsuario() || miUsuario;
+              if (correoUsuario) {
+                const inputUsuario = document.getElementById('input-usuario');
+                if (inputUsuario) {
+                  inputUsuario.value = correoUsuario;
+                }
+                conectarUsuario();
+              }
+            } else if (socket && socket.connected) {
+              clearInterval(intervaloReconexion);
+              intervaloReconexion = null;
+            }
+          }, 3000); // Intentar cada 3 segundos
+        }
+        
+        codigoGuardadoAntesDesconexion.clear();
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData && editorData.editorInstance) {
+            const codigoActual = editorData.editorInstance.getValue();
+            if (codigoActual && 
+                codigoActual.trim() !== '' && 
+                codigoActual !== PLANTILLA_CPP && 
+                codigoActual !== PLANTILLA_VECTOR &&
+                codigoActual !== PLANTILLA_MATRIZ &&
+                codigoActual !== PLANTILLA_LISTA_ENLAZADA) {
+              codigoGuardadoAntesDesconexion.set(tabId, codigoActual);
+              console.log(`💾 Código guardado para pestaña ${tabId} antes de desconexión`);
+            }
+          }
+        });
+        
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData && editorData.editorInstance) {
+            sincronizando = true; // Evitar que se sincronice con el servidor
+            editorData.editorInstance.setValue(obtenerPlantillaActual());
+            editorData.codigo = editorData.editorInstance.getValue();
+            editorData.editorInstance.clearHistory();
+            sincronizando = false;
+            console.log(`🗑️ Editor de pestaña ${tabId} vaciado por desconexión (historial limpiado)`);
+          }
+        });
+        
+        socketListenersRegistrados = false;
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData.cursosRemotos) {
+            editorData.cursosRemotos.forEach((curso, socketId) => {
+              if (curso.marker) {
+                curso.marker.clear();
+              }
+            });
+            editorData.cursosRemotos.clear();
+          }
+        });
       }
     }
 
-    const modalReconexion = document.getElementById('modal-reconexion');
-    const estabaReconectando =
-      modalReconexion && modalReconexion.style.display === 'flex';
-
-    if (intervaloReconexion) {
-      clearInterval(intervaloReconexion);
-      intervaloReconexion = null;
-    }
-
-    if (estabaReconectando) {
-      setTimeout(() => window.location.reload(), 500);
-      return;
-    }
-
-    document.getElementById('modal-usuario').style.display = 'none';
-    document.getElementById('usuarios-conectados').style.display = 'block';
-
-    inicializarArrastreMenu();
-    inicializarSistemaPestañas();
-
-    if (data.documentos && data.documentos.length > 0) {
-      data.documentos.forEach(doc => {
-        documentosDisponibles.set(doc.tabId, doc);
-        crearPestañaUI(doc.tabId, doc.nombre, false);
-      });
-      actualizarEstadoVisualPestañas();
-      cambiarPestaña(data.documentos[0].tabId);
-    } else {
-      crearNuevaPestaña();
-    }
-  });
-
-  socket.on('pestaña-creada', (data) => {
-    documentosDisponibles.set(data.tabId, data);
-    crearPestañaUI(data.tabId, data.nombre, false);
-    actualizarEstadoVisualPestañas();
-    if (data.creadorSocketId === socket.id) {
-      setTimeout(() => cambiarPestaña(data.tabId), 100);
-    }
-  });
-
-  socket.on('codigo-actual', (data) => {
-    const editorData = editoresPorPestaña.get(data.tabId);
-    if (!editorData || !editorData.editorInstance) return;
-
-    sincronizando = true;
-    editorData.editorInstance.setValue(data.codigo || obtenerPlantillaActual());
-    editorData.codigo = editorData.editorInstance.getValue();
-  });
-
-  socket.on('codigo-actualizado', (data) => {
-    if (data.socketId === socket.id) return;
-    const editorData = editoresPorPestaña.get(data.tabId);
-    if (!editorData || !editorData.editorInstance) return;
-
-    sincronizando = true;
-    editorData.editorInstance.setValue(data.cambios.codigo);
-    editorData.codigo = data.cambios.codigo;
-  });
-
-  socket.on('usuarios-actualizados', (usuarios) => {
-    actualizarListaUsuarios(usuarios);
-  });
-
-  socket.on('invitacion-posicion', (data) => {
-    const overlay = document.getElementById("editor-overlay");
-    const editorCerrado = !overlay || overlay.style.display !== "flex";
-
-    if (editorCerrado) {
-      toggleEditor();
-      setTimeout(() => {
-        navegarAPosicionInvitada(
-          data.tabId,
-          data.line,
-          data.ch,
-          data.usuario,
-          data.color
-        );
-      }, 200);
-      return;
-    }
-
-    navegarAPosicionInvitada(
-      data.tabId,
-      data.line,
-      data.ch,
-      data.usuario,
-      data.color
-    );
-  });
-
-  // =====================================================
-  // 🔗 ABRIR LINK EN EL USUARIO DESTINO (FIX DEFINITIVO)
-  // =====================================================
-  socket.on('abrir-link', ({ url }) => {
-  console.log('🔗 Abriendo link en nueva pestaña:', url);
-
-  if (!url) return;
-
-  const nuevaVentana = window.open(url, '_blank');
-
-  // Fallback MUY raro, pero seguro
-  if (!nuevaVentana) {
-    console.warn('⚠️ El navegador bloqueó window.open');
-  }
-});
-
-
-  socket.on('disconnect', () => {
-    console.log('Desconectado del servidor');
-    if (vaciarEditoresPorDesconexion) {
-      vaciarEditoresPorDesconexion();
-    }
-  });
-}
-
-
-    // ========== FUNCIONES SISTEMA DE PESTAÑAS ==========
     
     function inicializarSistemaPestañas() {
-      // Event listener para botón de nueva pestaña
       const nuevaPestañaBtn = document.getElementById('nueva-pestaña-btn');
       if (nuevaPestañaBtn) {
         nuevaPestañaBtn.addEventListener('click', crearNuevaPestaña);
       }
 
-      // Listener para Ctrl + T para crear nueva hoja
       document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key.toLowerCase() === 't') {
           e.preventDefault();
           const target = e.target;
-          // Permitir Ctrl+T en el editor CodeMirror y otros lugares
-          // Solo no capturar si estamos en el input de nombre de usuario
           const isInputUsuario = target.id === 'input-usuario';
           
-          // Verificar si estamos dentro de un prompt de JavaScript (no podemos detectarlo fácilmente, así que permitimos)
-          // O si estamos en el editor CodeMirror
           const isInCodeMirror = target.closest && target.closest('.CodeMirror');
           
           if (!isInputUsuario || isInCodeMirror) {
@@ -4126,44 +4123,15 @@ function registrarSocketListeners(correoUsuario) {
         }
       });
 
-      // Ocultar el panel de editor original (template) y asegurar que no se muestre
       const panelTemplate = document.querySelector('.editor-panel[data-tab-id=""]');
       if (panelTemplate) {
         panelTemplate.style.display = 'none';
         panelTemplate.classList.remove('active');
-        // Asegurar que todos los elementos del template estén ocultos
         panelTemplate.querySelectorAll('.input-area, .output, .editor-textarea').forEach(el => {
           el.style.display = 'none';
         });
       }
     }
-
-    function pedirLinkOBusqueda() {
-  const input = prompt(
-    '🌐 Pegá un link o escribí una búsqueda:\n\n' +
-    '• Texto → Google Imágenes\n' +
-    '• Link → se abre directo'
-  );
-
-  if (!input || !input.trim()) return null;
-
-  const valor = input.trim();
-
-  // Link completo
-  if (valor.startsWith('http://') || valor.startsWith('https://')) {
-    return valor;
-  }
-
-  // Dominio sin protocolo (ej: google.com)
-  if (valor.includes('.') && !valor.includes(' ')) {
-    return 'https://' + valor;
-  }
-
-  // Texto normal → búsqueda en Google Imágenes
-  const busquedaCodificada = encodeURIComponent(valor);
-  return `https://www.google.com/search?tbm=isch&q=${busquedaCodificada}`;
-}
-
 
     function crearNuevaPestaña() {
       if (!socket || !socket.connected) {
@@ -4176,7 +4144,6 @@ function registrarSocketListeners(correoUsuario) {
     }
 
     function crearPestañaUI(tabId, nombre, esActiva) {
-      // Crear botón de pestaña
       const tabsContainer = document.getElementById('editor-tabs');
       const nuevaPestañaBtn = document.getElementById('nueva-pestaña-btn');
       
@@ -4193,11 +4160,9 @@ function registrarSocketListeners(correoUsuario) {
           e.stopPropagation();
           cerrarPestaña(tabId);
         } else {
-          // Verificar si se puede acceder a esta pestaña
           if (!permitirColaboracion && !navegandoPorInvitacion) {
             const docInfo = documentosDisponibles.get(tabId);
             if (docInfo && docInfo.creadorSocketId && docInfo.creadorSocketId !== socket.id) {
-              // No permitir click en pestañas ajenas cuando la colaboración está desactivada
               e.preventDefault();
               e.stopPropagation();
               return;
@@ -4207,10 +4172,8 @@ function registrarSocketListeners(correoUsuario) {
         }
       });
 
-      // Insertar antes del botón de nueva pestaña
       tabsContainer.insertBefore(tabBtn, nuevaPestañaBtn);
 
-      // Crear panel de editor para esta pestaña
       crearPanelEditor(tabId, nombre);
     }
 
@@ -4228,18 +4191,15 @@ function registrarSocketListeners(correoUsuario) {
       nuevoPanel.classList.remove('active');
       nuevoPanel.style.display = 'none'; // Ocultar por defecto
       
-      // Actualizar elementos con data-tab-id
       nuevoPanel.querySelectorAll('[data-tab-id=""]').forEach(el => {
         el.setAttribute('data-tab-id', tabId);
       });
 
-      // Actualizar IDs únicos para evitar duplicados
       const header = nuevoPanel.querySelector('#editor-header');
       if (header) {
         header.id = `editor-header-${tabId}`;
       }
 
-      // Asegurar que los elementos del nuevo panel sean visibles cuando se active
       const inputArea = nuevoPanel.querySelector('.input-area[data-tab-id="' + tabId + '"]');
       const output = nuevoPanel.querySelector('.output[data-tab-id="' + tabId + '"]');
       if (inputArea) {
@@ -4255,14 +4215,11 @@ function registrarSocketListeners(correoUsuario) {
 
       contentWrapper.appendChild(nuevoPanel);
 
-      // Mostrar temporalmente el panel para que CodeMirror pueda calcular dimensiones
       nuevoPanel.style.display = 'flex';
       nuevoPanel.style.visibility = 'hidden';
       nuevoPanel.style.position = 'absolute';
       
-      // Esperar un momento para que el DOM se actualice
       setTimeout(() => {
-        // Crear instancia de CodeMirror para esta pestaña
         const textarea = nuevoPanel.querySelector('.editor-textarea[data-tab-id="' + tabId + '"]');
         if (!textarea) {
           console.error('No se encontró el textarea para la pestaña', tabId);
@@ -4272,9 +4229,7 @@ function registrarSocketListeners(correoUsuario) {
           return;
         }
 
-        // Verificar si ya existe un editor para este textarea
         if (textarea.cm) {
-          // Ya existe, solo actualizar editoresPorPestaña si no existe
           const existingData = editoresPorPestaña.get(tabId);
           if (!existingData) {
             editoresPorPestaña.set(tabId, {
@@ -4285,17 +4240,14 @@ function registrarSocketListeners(correoUsuario) {
               editorSoloMax: false
             });
           }
-          // Restaurar estilos del panel y retornar
           nuevoPanel.style.display = 'none';
           nuevoPanel.style.visibility = 'visible';
           nuevoPanel.style.position = 'relative';
           return;
         }
         
-        // Establecer un ID único para el textarea
         textarea.id = `editor-${tabId}`;
         
-        // Asegurar que el textarea tenga dimensiones visibles
         textarea.style.width = '100%';
         textarea.style.height = '500px';
         textarea.style.minHeight = '500px';
@@ -4310,17 +4262,13 @@ function registrarSocketListeners(correoUsuario) {
           return;
         }
         
-        // Establecer código inicial: primero verificar si hay código del servidor
         const codigoDelDocumento = documentosDisponibles.get(tabId)?.codigo || '';
         if (codigoDelDocumento.trim() !== '') {
-          // Si hay código del servidor, usarlo
           editorInstance.setValue(codigoDelDocumento);
         } else {
-          // Si no hay código del servidor, usar plantilla
           editorInstance.setValue(obtenerPlantillaActual());
         }
         
-        // Guardar datos del editor
         editoresPorPestaña.set(tabId, {
           editorInstance: editorInstance,
           codigo: editorInstance.getValue(),
@@ -4329,12 +4277,10 @@ function registrarSocketListeners(correoUsuario) {
           editorSoloMax: false
         });
 
-        // Restaurar estilos del panel
         nuevoPanel.style.display = 'none';
         nuevoPanel.style.visibility = 'visible';
         nuevoPanel.style.position = 'relative';
 
-        // Si es la primera pestaña o no hay pestaña activa, activarla
         if (pestañaActiva === null) {
           setTimeout(() => {
             cambiarPestaña(tabId);
@@ -4344,25 +4290,19 @@ function registrarSocketListeners(correoUsuario) {
     }
 
     function crearEditorCodeMirror(textarea, tabId) {
-      // Verificar si el textarea ya tiene un editor de CodeMirror
-      // CodeMirror oculta el textarea y crea un div .CodeMirror adyacente
       if (textarea.cm) {
-        // Ya existe un editor, retornarlo
         return textarea.cm;
       }
       
-      // Verificar si hay un elemento .CodeMirror en el padre (puede ser que se haya creado pero no esté en textarea.cm)
       const parent = textarea.parentElement;
       if (parent) {
         const existingCM = parent.querySelector('.CodeMirror');
         if (existingCM && existingCM.CodeMirror) {
-          // Ya existe, guardar referencia y retornar
           textarea.cm = existingCM.CodeMirror;
           return existingCM.CodeMirror;
         }
       }
       
-      // Configuración similar a la del editor original
       const cppKeywords = [
         "if", "else", "while", "for", "do", "switch", "case", "break", "continue", "return",
         "struct", "class", "public", "private", "protected", "void", "int", "float", "double",
@@ -4442,7 +4382,6 @@ function registrarSocketListeners(correoUsuario) {
         hintOptions: { hint: cppHint }
       });
 
-      // Asegurarse de que el editor tenga altura
       const container = textarea.parentElement;
       if (container) {
         container.style.display = 'flex';
@@ -4451,7 +4390,6 @@ function registrarSocketListeners(correoUsuario) {
         container.style.minHeight = '500px';
       }
 
-      // Calcular altura disponible
       const overlay = document.getElementById('editor-overlay');
       if (overlay && overlay.offsetHeight > 0) {
         const tabsHeight = document.querySelector('.editor-tabs')?.offsetHeight || 50;
@@ -4462,16 +4400,13 @@ function registrarSocketListeners(correoUsuario) {
         editor.setSize("100%", "500px");
       }
       
-      // Inicializar autocompletado personalizado para este editor
       setTimeout(() => {
         inicializarAutocompletadoPersonalizado(editor);
         inicializarSnippets(editor);
       }, 200);
       
-      // Refrescar el editor para asegurar que se renderice correctamente
       setTimeout(() => {
         editor.refresh();
-        // Forzar re-renderizado
         const cmDisplay = editor.getWrapperElement();
         if (cmDisplay) {
           cmDisplay.style.display = 'block';
@@ -4479,11 +4414,9 @@ function registrarSocketListeners(correoUsuario) {
         }
       }, 100);
 
-      // Actualizar estado inicial de solo lectura
       const puedeEditar = puedeEditarPestaña(tabId);
       editor.setOption('readOnly', !puedeEditar);
       
-      // Event listeners para cambios de código
       let cursorTimeout = null;
       
       editor.on('change', function(cm, change) {
@@ -4499,9 +4432,7 @@ function registrarSocketListeners(correoUsuario) {
         editorData.codigo = nuevoCodigo;
 
         if (socket && socket.connected && miUsuario && tabId === pestañaActiva) {
-          // Verificar si se puede editar (aunque debería estar deshabilitado si no se puede)
           if (!puedeEditarPestaña(tabId)) {
-            // Esto no debería ocurrir si readOnly está activo, pero por seguridad
             sincronizando = true;
             editor.setValue(editorData.codigo);
             sincronizando = false;
@@ -4538,8 +4469,6 @@ function registrarSocketListeners(correoUsuario) {
     function cambiarPestaña(tabId) {
       if (pestañaActiva === tabId) return;
       
-      // Si la colaboración está desactivada, verificar que la pestaña pertenezca al usuario
-      // A menos que se esté navegando por invitación
       if (!permitirColaboracion && !navegandoPorInvitacion) {
         const docInfo = documentosDisponibles.get(tabId);
         if (docInfo && docInfo.creadorSocketId && docInfo.creadorSocketId !== socket.id) {
@@ -4548,7 +4477,6 @@ function registrarSocketListeners(correoUsuario) {
         }
       }
 
-      // Guardar estado de maximización de la pestaña anterior
       if (pestañaActiva) {
         const editorDataAnterior = editoresPorPestaña.get(pestañaActiva);
         if (editorDataAnterior) {
@@ -4567,7 +4495,6 @@ function registrarSocketListeners(correoUsuario) {
         if (tabAnterior) tabAnterior.classList.remove('active');
       }
 
-      // Mostrar nuevo panel
       const nuevoPanel = document.querySelector(`.editor-panel[data-tab-id="${tabId}"]`);
       const nuevoTab = document.querySelector(`.editor-tab[data-tab-id="${tabId}"]`);
       
@@ -4575,7 +4502,6 @@ function registrarSocketListeners(correoUsuario) {
         nuevoPanel.classList.add('active');
         nuevoPanel.style.display = 'flex';
         
-        // Asegurar que los elementos del panel sean visibles
         const inputArea = nuevoPanel.querySelector('.input-area[data-tab-id="' + tabId + '"]');
         const output = nuevoPanel.querySelector('.output[data-tab-id="' + tabId + '"]');
         if (inputArea) {
@@ -4594,13 +4520,10 @@ function registrarSocketListeners(correoUsuario) {
       }
       if (nuevoTab) nuevoTab.classList.add('active');
 
-      // Guardar la pestaña anterior antes de cambiar
       const pestañaAnterior = pestañaActiva;
       
-      // IMPORTANTE: Actualizar pestaña activa ANTES de limpiar cursos remotos
       pestañaActiva = tabId;
       
-      // Restaurar estado de maximización de la nueva pestaña
       const editorDataNueva = editoresPorPestaña.get(tabId);
       if (editorDataNueva) {
         const overlay = document.getElementById("editor-overlay");
@@ -4613,7 +4536,6 @@ function registrarSocketListeners(correoUsuario) {
             editorMaximizado = false;
           }
           
-          // Actualizar el botón de maximizar
           const btnMaximizar = document.getElementById("maximizarSoloEditor");
           if (btnMaximizar) {
             if (editorDataNueva.editorSoloMax) {
@@ -4627,14 +4549,10 @@ function registrarSocketListeners(correoUsuario) {
         }
       }
 
-      // Si estamos cambiando de pestaña (no es la primera vez), limpiar nuestro cursor de la pestaña anterior
-      // Esto asegura que nuestro cursor no quede en la pestaña anterior para otros usuarios
       if (pestañaAnterior && pestañaAnterior !== tabId && socket && socket.connected) {
-        // Limpiar nuestro cursor de la pestaña anterior localmente
         const editorDataAnterior = editoresPorPestaña.get(pestañaAnterior);
         if (editorDataAnterior && editorDataAnterior.cursosRemotos) {
           editorDataAnterior.cursosRemotos.delete(socket.id);
-          // También limpiar el marcador si existe
           const cursoAnterior = editorDataAnterior.cursosRemotos.get(socket.id);
           if (cursoAnterior && cursoAnterior.marker) {
             cursoAnterior.marker.clear();
@@ -4643,8 +4561,6 @@ function registrarSocketListeners(correoUsuario) {
         }
       }
 
-      // Limpiar cursos remotos de TODAS las otras pestañas (ocultar marcadores)
-      // Esto asegura que no se muestren cursos de pestañas no activas
       editoresPorPestaña.forEach((data, otherTabId) => {
         if (otherTabId !== tabId && data.cursosRemotos) {
           data.cursosRemotos.forEach((curso, socketId) => {
@@ -4653,15 +4569,12 @@ function registrarSocketListeners(correoUsuario) {
               curso.marker = null;
             }
           });
-          // Refrescar el editor para limpiar los marcadores visualmente
           if (data.editorInstance) {
             data.editorInstance.refresh();
           }
         }
       });
       
-      // Asegurar que los cursos remotos de la pestaña activa también estén limpios inicialmente
-      // Se mostrarán después si el toggle está activado
       const editorDataActiva = editoresPorPestaña.get(tabId);
       if (editorDataActiva && editorDataActiva.cursosRemotos) {
         editorDataActiva.cursosRemotos.forEach((curso, socketId) => {
@@ -4672,11 +4585,9 @@ function registrarSocketListeners(correoUsuario) {
         });
       }
 
-      // Unirse a la pestaña en el servidor
       if (socket && socket.connected) {
         socket.emit('unirse-pestaña', { tabId });
         
-        // Enviar posición actual del cursor inmediatamente después de unirse
         setTimeout(() => {
           const editorData = editoresPorPestaña.get(tabId);
           if (editorData && editorData.editorInstance && miUsuario) {
@@ -4692,20 +4603,15 @@ function registrarSocketListeners(correoUsuario) {
         }, 300);
       }
 
-      // Refrescar editor y enfocar (o crear si no existe)
       let editorData = editoresPorPestaña.get(tabId);
       
-      // Actualizar estado de solo lectura cuando se cambia de pestaña
       if (editorData && editorData.editorInstance) {
         const puedeEditar = puedeEditarPestaña(tabId);
         editorData.editorInstance.setOption('readOnly', !puedeEditar);
       }
       
-      // Mostrar cursos remotos de esta pestaña si el toggle está activado
-      // Solo hacer esto después de limpiar todos los cursos remotos
       if (editorData && editorData.cursosRemotos && mostrarCursosRemotos && pestañaActiva === tabId) {
         setTimeout(() => {
-          // Verificar nuevamente que sigamos en la misma pestaña activa
           if (pestañaActiva === tabId) {
             editorData.cursosRemotos.forEach((curso, socketId) => {
               if (curso.line !== undefined && curso.ch !== undefined && curso.username && curso.color) {
@@ -4717,13 +4623,9 @@ function registrarSocketListeners(correoUsuario) {
       }
       
       if (!editorData || !editorData.editorInstance) {
-        // Si el editor no existe, crearlo ahora que el panel está visible
         const textarea = nuevoPanel?.querySelector('.editor-textarea[data-tab-id="' + tabId + '"]');
         if (textarea) {
-          // Verificar si el textarea ya tiene un editor de CodeMirror
-          // crearEditorCodeMirror ya verifica esto internamente, pero verificamos aquí también
           if (textarea.cm) {
-            // Ya existe un editor, usarlo
             editorData = {
               editorInstance: textarea.cm,
               codigo: textarea.cm.getValue(),
@@ -4733,7 +4635,6 @@ function registrarSocketListeners(correoUsuario) {
             };
             editoresPorPestaña.set(tabId, editorData);
           } else {
-            // No existe editor, crear uno nuevo
             textarea.id = `editor-${tabId}`;
             textarea.style.width = '100%';
             textarea.style.height = '500px';
@@ -4741,15 +4642,12 @@ function registrarSocketListeners(correoUsuario) {
             
             const editorInstance = crearEditorCodeMirror(textarea, tabId);
             if (editorInstance) {
-              // Establecer código inicial: primero verificar si hay código del servidor
               const codigoDelDocumento = documentosDisponibles.get(tabId)?.codigo || '';
               const codigoInicial = editorInstance.getValue() || '';
               
               if (codigoDelDocumento.trim() !== '') {
-                // Si hay código del servidor, usarlo
                 editorInstance.setValue(codigoDelDocumento);
               } else if (!codigoInicial || codigoInicial.trim() === '') {
-                // Solo usar plantilla si no hay código del servidor ni código inicial
                 editorInstance.setValue(obtenerPlantillaActual());
               }
               
@@ -4776,7 +4674,6 @@ function registrarSocketListeners(correoUsuario) {
       
       if (editorData && editorData.editorInstance) {
         setTimeout(() => {
-          // Calcular altura correcta ahora que el panel está visible
           const overlay = document.getElementById('editor-overlay');
           if (overlay && overlay.offsetHeight > 0) {
             const tabsHeight = document.querySelector('.editor-tabs')?.offsetHeight || 50;
@@ -4788,7 +4685,6 @@ function registrarSocketListeners(correoUsuario) {
           editorData.editorInstance.refresh();
           editorData.editorInstance.focus();
           
-          // Segundo refresh para asegurar renderizado completo
           setTimeout(() => {
             editorData.editorInstance.refresh();
           }, 100);
@@ -4802,7 +4698,6 @@ function registrarSocketListeners(correoUsuario) {
         return;
       }
 
-      // Si es la pestaña activa, cambiar a otra
       if (pestañaActiva === tabId) {
         const otrasPestañas = Array.from(editoresPorPestaña.keys()).filter(id => id !== tabId);
         if (otrasPestañas.length > 0) {
@@ -4810,7 +4705,6 @@ function registrarSocketListeners(correoUsuario) {
         }
       }
 
-      // Eliminar del DOM y del Map
       const panel = document.querySelector(`.editor-panel[data-tab-id="${tabId}"]`);
       const tab = document.querySelector(`.editor-tab[data-tab-id="${tabId}"]`);
       
@@ -4908,92 +4802,55 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    // Función auxiliar para obtener solo la parte del correo antes del @
     function obtenerNombreUsuario(correo) {
       if (!correo) return '';
       const partes = correo.split('@');
       return partes[0] || correo;
     }
- function actualizarListaUsuarios(usuarios) {
-  const lista = document.getElementById('lista-usuarios');
-  lista.innerHTML = '';
-  
-  usuariosPorSocketId.clear();
-  usuarios.forEach(usuario => {
-    usuariosPorSocketId.set(usuario.socketId, {
-      username: usuario.username,
-      color: usuario.color,
-      pestañaActiva: usuario.pestañaActiva
-    });
-  });
-  
-  usuarios.forEach(usuario => {
-    if (usuario.socketId === socket.id) return;
-
-    const nombreUsuario = obtenerNombreUsuario(usuario.username);
     
-    const item = document.createElement('div');
-    item.className = 'usuario-item';
-    item.style.cursor = 'pointer';
-    
-    item.innerHTML = `
-      <span class="usuario-color" style="background-color: ${usuario.color}"></span>
-      <span class="usuario-nombre">${nombreUsuario}</span>
-      <span class="invitar-simbolo"
-            title="Invitar a ${usuario.username} a mi posición"
-            style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">
-        📍
-      </span>
-    `;
-
-    const nombreSpan = item.querySelector('.usuario-nombre');
-
-    // ==================================================
-    // CLICK vs DOBLE CLICK (manejo correcto)
-    // ==================================================
-    let clickTimeout = null;
-
-    nombreSpan.addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      clickTimeout = setTimeout(() => {
-        navegarAUsuario(usuario.socketId);
-      }, 250); // espera para ver si hay doble click
-    });
-
-    nombreSpan.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-
-      // Cancelar el click simple
-      if (clickTimeout) {
-        clearTimeout(clickTimeout);
-        clickTimeout = null;
-      }
-
-      const url = pedirLinkOBusqueda();
-      if (!url) return;
-
-      socket.emit('abrir-link-usuario', {
-        socketIdDestino: usuario.socketId,
-        url
+    function actualizarListaUsuarios(usuarios) {
+      const lista = document.getElementById('lista-usuarios');
+      lista.innerHTML = '';
+      
+      usuariosPorSocketId.clear();
+      usuarios.forEach(usuario => {
+        usuariosPorSocketId.set(usuario.socketId, {
+          username: usuario.username,
+          color: usuario.color,
+          pestañaActiva: usuario.pestañaActiva
+        });
       });
-    });
-
-    // ==================================================
-    // 📍 CLICK EN EL ÍCONO → TRAERLO A MI POSICIÓN
-    // ==================================================
-    const simbolo = item.querySelector('.invitar-simbolo');
-    simbolo.addEventListener('click', (e) => {
-      e.stopPropagation();
-      invitarAMiPosicion(usuario.socketId);
-    });
-
-    lista.appendChild(item);
-  });
-}
-
-
-
+      
+      usuarios.forEach(usuario => {
+        if (usuario.socketId === socket.id) return;
+        
+        const nombreUsuario = obtenerNombreUsuario(usuario.username);
+        
+        const item = document.createElement('div');
+        item.className = 'usuario-item';
+        item.style.cursor = 'pointer';
+        item.title = usuario.pestañaActiva ? `Ir a ${usuario.username} (${documentosDisponibles.get(usuario.pestañaActiva)?.nombre || 'Pestaña'})` : `Usuario: ${usuario.username}`;
+        item.innerHTML = `
+          <span class="usuario-color" style="background-color: ${usuario.color}"></span>
+          <span class="usuario-nombre">${nombreUsuario}</span>
+          <span class="invitar-simbolo" title="Invitar a ${usuario.username} a mi posición" style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">📍</span>
+        `;
+        
+        const nombreSpan = item.querySelector('.usuario-nombre');
+        nombreSpan.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navegarAUsuario(usuario.socketId);
+        });
+        
+        const simbolo = item.querySelector('.invitar-simbolo');
+        simbolo.addEventListener('click', (e) => {
+          e.stopPropagation();
+          invitarAMiPosicion(usuario.socketId);
+        });
+        
+        lista.appendChild(item);
+      });
+    }
     
     function invitarAMiPosicion(socketIdDestino) {
       if (!permitirColaboracion) {
@@ -5019,7 +4876,6 @@ function registrarSocketListeners(correoUsuario) {
       
       const cursor = editorData.editorInstance.getCursor();
       
-      // Enviar invitación solo al usuario específico
       socket.emit('invitar-a-mi-posicion', {
         tabId: pestañaActiva,
         line: cursor.line,
@@ -5042,21 +4898,17 @@ function registrarSocketListeners(correoUsuario) {
         return;
       }
       
-      // Verificar si el editor está cerrado y abrirlo si es necesario
       const overlay = document.getElementById("editor-overlay");
       const editorCerrado = !overlay || overlay.style.display !== "flex";
       
       if (editorCerrado) {
-        // Abrir el editor primero
         toggleEditor();
-        // Esperar a que el editor se abra antes de continuar
         setTimeout(() => {
           navegarAUsuarioInterno(socketId);
         }, 200);
         return;
       }
       
-      // Si el editor ya está abierto, proceder directamente
       navegarAUsuarioInterno(socketId);
     }
     
@@ -5069,43 +4921,34 @@ function registrarSocketListeners(correoUsuario) {
       
       const tabId = usuarioInfo.pestañaActiva;
       
-      // Si la pestaña no es la activa, cambiar a ella primero
       if (pestañaActiva !== tabId) {
         cambiarPestaña(tabId);
       }
       
-      // Esperar a que el cambio de pestaña se complete
       setTimeout(() => {
-        // Buscar la posición del cursor del usuario en la pestaña activa del usuario
         const editorData = editoresPorPestaña.get(tabId);
         
         if (editorData && editorData.cursosRemotos && editorData.cursosRemotos.has(socketId)) {
           const curso = editorData.cursosRemotos.get(socketId);
           
-          // Verificar que tenemos una posición válida
           if (editorData.editorInstance && 
               curso.line !== undefined && curso.ch !== undefined &&
               curso.line !== null && curso.ch !== null) {
             const editor = editorData.editorInstance;
             
-            // Validar que la posición sea válida
             if (editor.lineCount() === 0) {
-              // Editor vacío, ir al inicio
               editor.focus();
               return;
             }
             
-            // Asegurarse de que la línea existe
             const line = Math.max(0, Math.min(curso.line, editor.lineCount() - 1));
             const maxCh = Math.max(0, editor.getLine(line).length);
             const ch = Math.max(0, Math.min(curso.ch, maxCh));
             
-            // Mover el cursor a la posición del usuario (incluso si es 0,0, puede ser válido)
             editor.setCursor(CodeMirror.Pos(line, ch));
             editor.scrollIntoView(CodeMirror.Pos(line, ch), 100);
             editor.focus();
             
-            // Resaltar brevemente la línea con un marcador visual
             const highlight = document.createElement('div');
             highlight.style.backgroundColor = usuarioInfo.color || '#00ffcc';
             highlight.style.opacity = '0.3';
@@ -5131,13 +4974,11 @@ function registrarSocketListeners(correoUsuario) {
               if (marker) marker.clear();
             }, 2000);
           } else {
-            // No hay posición válida, solo cambiar a la pestaña
             if (editorData.editorInstance) {
               editorData.editorInstance.focus();
             }
           }
         } else {
-          // No encontramos el cursor, solo cambiar a la pestaña y enfocar
           if (editorData && editorData.editorInstance) {
             editorData.editorInstance.focus();
           }
@@ -5151,15 +4992,12 @@ function registrarSocketListeners(correoUsuario) {
         return;
       }
       
-      // Permitir acceso temporal a hojas ajenas por invitación
       navegandoPorInvitacion = true;
       
-      // Si la pestaña no es la activa, cambiar a ella primero
       if (pestañaActiva !== tabId) {
         cambiarPestaña(tabId);
       }
       
-      // Esperar a que el cambio de pestaña se complete
       setTimeout(() => {
         const editorData = editoresPorPestaña.get(tabId);
         
@@ -5170,24 +5008,19 @@ function registrarSocketListeners(correoUsuario) {
         
         const editor = editorData.editorInstance;
         
-        // Validar que la posición sea válida
         if (editor.lineCount() === 0) {
-          // Editor vacío, ir al inicio
           editor.focus();
           return;
         }
         
-        // Asegurarse de que la línea existe
         const validLine = Math.max(0, Math.min(line, editor.lineCount() - 1));
         const maxCh = Math.max(0, editor.getLine(validLine).length);
         const validCh = Math.max(0, Math.min(ch, maxCh));
         
-        // Mover el cursor a la posición invitada
         editor.setCursor(CodeMirror.Pos(validLine, validCh));
         editor.scrollIntoView(CodeMirror.Pos(validLine, validCh), 100);
         editor.focus();
         
-        // Resaltar brevemente la línea con un marcador visual
         const highlight = document.createElement('div');
         highlight.style.backgroundColor = color || '#00ffcc';
         highlight.style.opacity = '0.3';
@@ -5213,7 +5046,6 @@ function registrarSocketListeners(correoUsuario) {
           if (marker) marker.clear();
         }, 2000);
         
-        // Restaurar el flag después de navegar
         setTimeout(() => {
           navegandoPorInvitacion = false;
         }, 500);
@@ -5228,11 +5060,9 @@ function registrarSocketListeners(correoUsuario) {
       }, 2000);
     }
 
-    // Funciones para manejar cursos remotos
     function actualizarCursoRemoto(socketId, username, color, line, ch) {
       if (!editorInstance || !mostrarCursosRemotos) return; // Solo mostrar si está activado
 
-      // Si ya existe un marcador para este usuario, eliminarlo primero
       if (cursosRemotos.has(socketId)) {
         const cursoExistente = cursosRemotos.get(socketId);
         if (cursoExistente.marker) {
@@ -5240,10 +5070,8 @@ function registrarSocketListeners(correoUsuario) {
         }
       }
 
-      // Crear un marcador en la posición del cursor
       const pos = CodeMirror.Pos(line, ch);
       
-      // Crear widget personalizado para mostrar el cursor
       const widget = document.createElement('span');
       widget.className = 'remote-cursor-marker';
       widget.style.backgroundColor = color;
@@ -5255,7 +5083,6 @@ function registrarSocketListeners(correoUsuario) {
       widget.style.verticalAlign = 'text-bottom';
       widget.style.position = 'relative';
       
-      // Crear etiqueta con el nombre del usuario
       const label = document.createElement('span');
       label.className = 'remote-cursor-label';
       label.textContent = obtenerNombreUsuario(username);
@@ -5273,21 +5100,18 @@ function registrarSocketListeners(correoUsuario) {
       label.style.zIndex = '1000';
       label.style.pointerEvents = 'none';
       
-      // Contenedor para el cursor y la etiqueta
       const container = document.createElement('span');
       container.style.position = 'relative';
       container.style.display = 'inline-block';
       container.appendChild(widget);
       container.appendChild(label);
 
-      // Marcar la posición exacta del cursor usando setBookmark
       const marker = editorInstance.setBookmark(pos, {
         widget: container,
         insertLeft: false,
         handleMouseEvents: false
       });
 
-      // Guardar referencia al marcador
       cursosRemotos.set(socketId, {
         marker: marker,
         username: username,
@@ -5296,7 +5120,6 @@ function registrarSocketListeners(correoUsuario) {
         ch: ch
       });
 
-      // Actualizar cuando el editor se redibuje
       setTimeout(() => {
         editorInstance.refresh();
       }, 0);
@@ -5315,7 +5138,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    // Limpiar todos los cursos remotos
     function limpiarTodosLosCursosRemotos() {
       cursosRemotos.forEach((curso, socketId) => {
         if (curso.marker) {
@@ -5328,7 +5150,6 @@ function registrarSocketListeners(correoUsuario) {
       }, 0);
     }
 
-    // Función para inicializar el arrastre del menú de usuarios
     function inicializarArrastreMenu() {
       const menu = document.getElementById('usuarios-conectados');
       const header = document.getElementById('usuarios-header');
@@ -5336,11 +5157,9 @@ function registrarSocketListeners(correoUsuario) {
       
       if (!menu || !header) return;
 
-      // Evitar inicialización múltiple
       if (menu.hasAttribute('data-arrastre-inicializado')) return;
       menu.setAttribute('data-arrastre-inicializado', 'true');
 
-      // Restaurar posición guardada o usar posición por defecto (top center)
       const posicionGuardada = localStorage.getItem('menuUsuariosPosicion');
       if (posicionGuardada) {
         try {
@@ -5350,24 +5169,19 @@ function registrarSocketListeners(correoUsuario) {
           menu.style.transform = 'none'; // Quitar transform cuando hay posición guardada
         } catch (e) {
           console.warn('Error al restaurar posición del menú:', e);
-          // Si hay error, usar posición por defecto
           menu.style.left = '50%';
           menu.style.transform = 'translateX(-50%)';
         }
       } else {
-        // Posición por defecto: top center
         menu.style.left = '50%';
         menu.style.transform = 'translateX(-50%)';
       }
 
-      // Prevenir que el botón de minimizar active el arrastre
       minimizarBtn.addEventListener('mousedown', (e) => {
         e.stopPropagation();
       });
 
-      // Evento de inicio de arrastre
       header.addEventListener('mousedown', (e) => {
-        // No arrastrar si se hace click en el botón de minimizar
         if (e.target === minimizarBtn || minimizarBtn.contains(e.target)) {
           return;
         }
@@ -5375,7 +5189,6 @@ function registrarSocketListeners(correoUsuario) {
         arrastrandoMenu = true;
         menu.classList.add('arrastrando');
         
-        // Calcular offset del mouse respecto al menú
         const rect = menu.getBoundingClientRect();
         offsetMenu.x = e.clientX - rect.left;
         offsetMenu.y = e.clientY - rect.top;
@@ -5383,15 +5196,12 @@ function registrarSocketListeners(correoUsuario) {
         e.preventDefault();
       });
 
-      // Evento de movimiento del mouse
       document.addEventListener('mousemove', (e) => {
         if (!arrastrandoMenu) return;
 
-        // Calcular nueva posición
         let nuevaX = e.clientX - offsetMenu.x;
         let nuevaY = e.clientY - offsetMenu.y;
 
-        // Limitar a los bordes de la ventana
         const rect = menu.getBoundingClientRect();
         const maxX = window.innerWidth - rect.width;
         const maxY = window.innerHeight - rect.height;
@@ -5399,20 +5209,17 @@ function registrarSocketListeners(correoUsuario) {
         nuevaX = Math.max(0, Math.min(nuevaX, maxX));
         nuevaY = Math.max(0, Math.min(nuevaY, maxY));
 
-        // Actualizar posición
         menu.style.top = nuevaY + 'px';
         menu.style.left = nuevaX + 'px';
         menu.style.transition = 'none'; // Desactivar transición durante arrastre
       });
 
-      // Evento de fin de arrastre
       document.addEventListener('mouseup', () => {
         if (arrastrandoMenu) {
           arrastrandoMenu = false;
           menu.classList.remove('arrastrando');
           menu.style.transition = 'box-shadow 0.3s ease'; // Reactivar transición
 
-          // Guardar posición (quitar transform cuando se arrastra)
           menu.style.transform = 'none';
           const rect = menu.getBoundingClientRect();
           const posicion = {
@@ -5424,7 +5231,6 @@ function registrarSocketListeners(correoUsuario) {
       });
     }
 
-    // Función para minimizar/maximizar el menú de usuarios
     function toggleMenuUsuarios() {
       const menu = document.getElementById('usuarios-conectados');
       const btn = document.getElementById('minimizar-usuarios-btn');
@@ -5442,7 +5248,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    // Función para abrir/cerrar el menú de usuarios
     function toggleMostrarMenuUsuarios() {
       const menu = document.getElementById('usuarios-conectados');
       if (!menu) return;
@@ -5454,14 +5259,12 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    // Función para toggle de cursos remotos
     function toggleCursosRemotos() {
       mostrarCursosRemotos = !mostrarCursosRemotos;
       const toggle = document.getElementById('toggle-cursos-remotos');
       
       if (mostrarCursosRemotos) {
         toggle.classList.add('active');
-        // Mostrar cursos remotos SOLO de la pestaña activa
         if (pestañaActiva) {
           const editorData = editoresPorPestaña.get(pestañaActiva);
           if (editorData && editorData.cursosRemotos) {
@@ -5474,7 +5277,6 @@ function registrarSocketListeners(correoUsuario) {
         }
       } else {
         toggle.classList.remove('active');
-        // Ocultar todos los cursos de TODAS las pestañas (limpiar marcadores pero mantener datos)
         editoresPorPestaña.forEach((editorData, tabId) => {
           if (editorData && editorData.cursosRemotos) {
             editorData.cursosRemotos.forEach((curso, socketId) => {
@@ -5496,17 +5298,13 @@ function registrarSocketListeners(correoUsuario) {
       const toggle = document.getElementById('toggle-colaboracion');
       
       if (nuevoEstado) {
-        // Intentando activar - pedir contraseña
         if (socket && socket.connected) {
-          // Pedir contraseña al usuario
           const contraseñaIngresada = prompt('Ingresá la contraseña para activar la colaboración:');
           
           if (contraseñaIngresada === null) {
-            // Usuario canceló
             return;
           }
           
-          // Verificar la contraseña con el servidor
           socket.emit('verificar-contraseña-colaboracion', {
             contraseñaIngresada: contraseñaIngresada
           });
@@ -5515,52 +5313,40 @@ function registrarSocketListeners(correoUsuario) {
           return;
         }
       } else {
-        // Desactivando - no requiere contraseña
         permitirColaboracion = false;
         toggle.classList.remove('active');
-        // Si se desactiva, notificar a todos los demás usuarios
         if (socket && socket.connected) {
           socket.emit('desactivar-colaboracion-global');
         }
-        // Actualizar estado de solo lectura de todos los editores
         actualizarEstadoSoloLecturaTodos();
         
-        // Actualizar estado visual de las pestañas
         actualizarEstadoVisualPestañas();
         
-        // Mover al usuario a una hoja propia si está en una que no le pertenece
         moverAhojaPropia();
       }
     }
 
-    // Inicializar event listeners después de que el DOM esté listo
     window.addEventListener('DOMContentLoaded', () => {
-      // Botón de minimizar menú
       const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
       if (minimizarBtn) {
         minimizarBtn.addEventListener('click', toggleMenuUsuarios);
       }
 
-      // Toggle de cursos remotos
       const toggleCursos = document.getElementById('toggle-cursos-remotos');
       if (toggleCursos) {
         toggleCursos.addEventListener('click', toggleCursosRemotos);
       }
 
-      // Toggle de colaboración
       const toggleColab = document.getElementById('toggle-colaboracion');
       if (toggleColab) {
         toggleColab.addEventListener('click', toggleColaboracion);
       }
 
-      // Inicializar arrastre del menú
       inicializarArrastreMenu();
     });
 
-    // Permitir Enter en el input de usuario y hacer focus automático
     const inputUsuario = document.getElementById('input-usuario');
     if (inputUsuario) {
-      // Hacer focus en el input cuando se carga la página
       setTimeout(() => {
         inputUsuario.focus();
       }, 100);
@@ -5583,8 +5369,6 @@ function registrarSocketListeners(correoUsuario) {
   </script>
   <script>
 
-  // --- Autocompletado personalizado Shift+Espacio ---
-  // Almacenar qué editores ya tienen autocompletado inicializado
   const autocompletadoInicializado = new WeakSet();
   
   function inicializarAutocompletadoPersonalizado(editorInstance) {
@@ -5593,7 +5377,6 @@ function registrarSocketListeners(correoUsuario) {
       return;
     }
     
-    // Evitar inicializar múltiples veces el mismo editor
     if (autocompletadoInicializado.has(editorInstance)) {
       return;
     }
@@ -5601,7 +5384,6 @@ function registrarSocketListeners(correoUsuario) {
     
     let autocompleteMenu = document.getElementById('autocomplete-menu');
     if (!autocompleteMenu) {
-      // Crear el menú si no existe
       autocompleteMenu = document.createElement('div');
       autocompleteMenu.id = 'autocomplete-menu';
       autocompleteMenu.style.cssText = 'position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10000; display: none; max-height: 200px; overflow-y: auto;';
@@ -5616,7 +5398,6 @@ function registrarSocketListeners(correoUsuario) {
       const text = editorInstance.getValue();
       const words = Array.from(new Set(text.match(/\b\w{2,}\b/g)));
       
-      // Lista de palabras clave de C++ que queremos ignorar
       const cppKeywords = [
         "if", "else", "while", "for", "do", "switch", "case", "break", "continue", "return", 
         "struct", "class", "public", "private", "protected", "void", "int", "float", "double", 
@@ -5630,7 +5411,6 @@ function registrarSocketListeners(correoUsuario) {
         "co_return", "co_yield", "import", "module", "export", "iostream", "std"
       ];
       
-      // Filtrar las palabras clave de C++
       const filteredWords = words.filter(word => !cppKeywords.includes(word));
       return filteredWords || [];
     }
@@ -5675,9 +5455,7 @@ function registrarSocketListeners(correoUsuario) {
       editorInstance.focus();
     }
 
-    // Detectar Shift+Espacio en el editor
     editorInstance.on('keydown', function(cm, e) {
-      // Shift+Espacio: mostrar menú o navegar entre opciones
       if (e.shiftKey && e.code === 'Space') {
         e.preventDefault();
         const doc = cm.getDoc();
@@ -5700,7 +5478,6 @@ function registrarSocketListeners(correoUsuario) {
           navegandoConShiftEspacio = false;
           return;
         }
-        // Si ya está el menú abierto y estamos navegando, avanzar a la siguiente opción SOLO si mantengo Shift
         if (autocompleteMenu.style.display === 'block' && navegandoConShiftEspacio) {
           autocompleteIndex = (autocompleteIndex + 1) % autocompleteOptions.length;
           showAutocompleteMenu(autocompleteOptions, autocompleteMenu.getBoundingClientRect());
@@ -5712,7 +5489,6 @@ function registrarSocketListeners(correoUsuario) {
           navegandoConShiftEspacio = true;
         }
       } else if (autocompleteMenu.style.display === 'block') {
-        // Navegación con flechas y Enter
         if (e.key === 'ArrowDown') {
           e.preventDefault();
           autocompleteIndex = (autocompleteIndex + 1) % autocompleteOptions.length;
@@ -5732,9 +5508,7 @@ function registrarSocketListeners(correoUsuario) {
       }
     });
 
-    // Detectar cuando se suelta Shift+Espacio para autocompletar con la opción seleccionada
     editorInstance.on('keyup', function(cm, e) {
-      // Al soltar Shift, autocompletar si corresponde (una o varias opciones)
       if (navegandoConShiftEspacio && e.key === 'Shift') {
         selectAutocomplete(autocompleteIndex);
         navegandoConShiftEspacio = false;
@@ -5748,11 +5522,7 @@ function registrarSocketListeners(correoUsuario) {
     });
   }
 
-  // El autocompletado se inicializará cuando se cree cada editor
-  // Ver función crearEditorCodeMirror
 
-  // --- Sistema de Snippets (Fragmentos de código) ---
-  // Array de snippets disponibles
   const snippets = [
     { nombre: "for", codigo: "for (int i = 0; i < n; i++) {\n    \n    }" },
     { nombre: "while", codigo: "while (condicion) {\n    \n    }" },
@@ -5801,7 +5571,6 @@ function registrarSocketListeners(correoUsuario) {
       return;
     }
     
-    // Evitar inicializar múltiples veces el mismo editor
     if (snippetsInicializado.has(editorInstance)) {
       return;
     }
@@ -5809,7 +5578,6 @@ function registrarSocketListeners(correoUsuario) {
     
     let snippetsMenu = document.getElementById('snippets-menu');
     if (!snippetsMenu) {
-      // Crear el menú si no existe
       snippetsMenu = document.createElement('div');
       snippetsMenu.id = 'snippets-menu';
       snippetsMenu.style.cssText = 'position: absolute; background: white; border: 1px solid #007bff; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10001; display: none; max-height: 300px; overflow-y: auto; min-width: 250px;';
@@ -5834,12 +5602,10 @@ function registrarSocketListeners(correoUsuario) {
     function showSnippetsMenu(filteredSnippets, coords, preservePosition = false) {
       snippetsMenu.innerHTML = '';
       
-      // Guardar las coordenadas si no estamos preservando la posición
       if (!preservePosition && coords) {
         menuCoords = { left: coords.left, top: coords.top };
       }
       
-      // Usar las coordenadas guardadas si no se proporcionan nuevas
       const finalCoords = preservePosition && menuCoords ? menuCoords : coords;
       
       if (filteredSnippets.length === 0) {
@@ -5857,14 +5623,12 @@ function registrarSocketListeners(correoUsuario) {
           div.style.borderBottom = i < filteredSnippets.length - 1 ? '1px solid #eee' : 'none';
           div.style.background = (i === snippetsIndex) ? '#e3f2fd' : 'white';
           
-          // Nombre del snippet
           const nombreDiv = document.createElement('div');
           nombreDiv.textContent = snippet.nombre;
           nombreDiv.style.fontWeight = '500';
           nombreDiv.style.color = '#333';
           div.appendChild(nombreDiv);
           
-          // Vista previa del código (primera línea)
           const previewDiv = document.createElement('div');
           const primeraLinea = snippet.codigo.split('\n')[0];
           previewDiv.textContent = primeraLinea.length > 40 ? primeraLinea.substring(0, 37) + '...' : primeraLinea;
@@ -5891,12 +5655,10 @@ function registrarSocketListeners(correoUsuario) {
         snippetsMenu.style.top = (finalCoords.top + 20) + 'px';
       }
       
-      // Hacer scroll al elemento seleccionado si existe
       if (filteredSnippets.length > 0 && snippetsIndex >= 0 && snippetsIndex < filteredSnippets.length) {
         const children = Array.from(snippetsMenu.children);
         const selectedElement = children[snippetsIndex];
         if (selectedElement) {
-          // Hacer scroll suave al elemento seleccionado
           selectedElement.scrollIntoView({
             behavior: 'smooth',
             block: 'nearest'
@@ -5920,18 +5682,14 @@ function registrarSocketListeners(correoUsuario) {
       const doc = editorInstance.getDoc();
       const cursor = doc.getCursor();
       
-      // Insertar el código del snippet en la posición del cursor
       doc.replaceRange(snippet.codigo, cursor);
       
-      // Colocar el cursor después del código insertado
       const lines = snippet.codigo.split('\n');
       const newLine = cursor.line + lines.length - 1;
       const newCh = lines.length === 1 ? cursor.ch + snippet.codigo.length : lines[lines.length - 1].length;
       
-      // Buscar el primer tab o espacios en blanco para colocar el cursor ahí
       const tabMatch = snippet.codigo.match(/\n(\s*)/);
       if (tabMatch && tabMatch[1]) {
-        // Si hay un tab/espacios, colocar el cursor ahí
         const posTab = snippet.codigo.indexOf('\n' + tabMatch[1]);
         if (posTab !== -1) {
           const lineBeforeTab = snippet.codigo.substring(0, posTab).split('\n').length - 1;
@@ -5947,9 +5705,7 @@ function registrarSocketListeners(correoUsuario) {
       editorInstance.focus();
     }
 
-    // Detectar Alt+P en el editor
     editorInstance.on('keydown', function(cm, e) {
-      // Alt+P: mostrar menú de snippets
       if (e.altKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         const doc = cm.getDoc();
@@ -5963,7 +5719,6 @@ function registrarSocketListeners(correoUsuario) {
         return;
       }
       
-      // Si el menú de snippets está visible, manejar navegación y búsqueda
       if (snippetsMenu.style.display === 'block') {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
@@ -5984,7 +5739,6 @@ function registrarSocketListeners(correoUsuario) {
           e.preventDefault();
           hideSnippetsMenu();
         } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-          // Si es un carácter normal, actualizar la búsqueda
           e.preventDefault();
           searchQuery += e.key;
           snippetsOptions = filtrarSnippets(searchQuery);
@@ -6006,7 +5760,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     });
 
-    // Cerrar el menú al hacer click fuera
     document.addEventListener('mousedown', function(e) {
       if (snippetsMenu.style.display === 'block' && !snippetsMenu.contains(e.target)) {
         hideSnippetsMenu();
@@ -6014,22 +5767,13 @@ function registrarSocketListeners(correoUsuario) {
     });
   }
 
-  // Los snippets se inicializarán cuando se cree cada editor
-  // Ver función crearEditorCodeMirror
   
-  // ============================================
-  // PORTAPAPELES INTERNO - Control de copiar/pegar
-  // ============================================
-  // Almacena el contenido copiado internamente (no se guarda en el portapapeles del sistema)
   let portapapelesInterno = '';
   
-  // Variable para rastrear si se usó Ctrl+Alt (para permitir copiar/pegar normal)
-  // Usamos un timestamp para mayor precisión y una variable para la acción
   let usarPortapapelesSistema = false;
   let timestampPortapapelesSistema = 0;
   let accionPortapapelesSistema = ''; // 'copy', 'paste', 'cut', o ''
 
-  // Función auxiliar para copiar usando execCommand (fallback)
   function copiarConExecCommand(texto) {
     const textArea = document.createElement('textarea');
     textArea.value = texto;
@@ -6047,71 +5791,54 @@ function registrarSocketListeners(correoUsuario) {
     document.body.removeChild(textArea);
   }
 
-  // Función para obtener el texto seleccionado de un elemento
   function obtenerTextoSeleccionado(elemento) {
     if (elemento instanceof CodeMirror) {
-      // Es un editor CodeMirror
       const seleccion = elemento.getSelection();
       return seleccion || '';
     } else if (elemento.tagName === 'TEXTAREA' || elemento.tagName === 'INPUT') {
-      // Es un textarea o input
       const inicio = elemento.selectionStart;
       const fin = elemento.selectionEnd;
       return elemento.value.substring(inicio, fin);
     } else {
-      // Para otros elementos, usar la API de selección del navegador
       const seleccion = window.getSelection();
       return seleccion.toString();
     }
   }
 
-  // Función para insertar texto en un elemento
   function insertarTexto(elemento, texto) {
     if (elemento instanceof CodeMirror) {
-      // Es un editor CodeMirror
       const doc = elemento.getDoc();
       const seleccion = doc.getSelection();
       if (seleccion) {
-        // Reemplazar selección
         doc.replaceSelection(texto);
       } else {
-        // Insertar en la posición del cursor
         const cursor = doc.getCursor();
         doc.replaceRange(texto, cursor);
       }
     } else if (elemento.tagName === 'TEXTAREA' || elemento.tagName === 'INPUT') {
-      // Es un textarea o input
       const inicio = elemento.selectionStart;
       const fin = elemento.selectionEnd;
       const valorAnterior = elemento.value;
       const nuevoValor = valorAnterior.substring(0, inicio) + texto + valorAnterior.substring(fin);
       elemento.value = nuevoValor;
-      // Actualizar posición del cursor
       const nuevaPosicion = inicio + texto.length;
       elemento.setSelectionRange(nuevaPosicion, nuevaPosicion);
-      // Disparar evento input para que los listeners sepan que cambió
       elemento.dispatchEvent(new Event('input', { bubbles: true }));
     }
   }
 
-  // Función para obtener el elemento activo (CodeMirror o textarea/input)
   function obtenerElementoActivo() {
-    // Primero verificar si hay un textarea o input activo (como el de validación)
     const elementoActivo = document.activeElement;
     if (elementoActivo && (elementoActivo.tagName === 'TEXTAREA' || elementoActivo.tagName === 'INPUT')) {
-      // Verificar si es un textarea que tiene un CodeMirror asociado
       if (elementoActivo.cm) {
         return elementoActivo.cm;
       }
-      // Si no, retornar el textarea/input directamente
       return elementoActivo;
     }
 
-    // Buscar el editor CodeMirror activo usando la pestaña activa
     if (typeof pestañaActiva !== 'undefined' && pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
       if (editorData && editorData.editorInstance) {
-        // Verificar si el editor está enfocado
         const wrapper = editorData.editorInstance.getWrapperElement();
         if (wrapper && (wrapper.classList.contains('CodeMirror-focused') || wrapper.contains(document.activeElement))) {
           return editorData.editorInstance;
@@ -6119,7 +5846,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    // Buscar editores CodeMirror enfocados directamente
     const editoresActivos = document.querySelectorAll('.CodeMirror-focused');
     if (editoresActivos.length > 0) {
       const cmElement = editoresActivos[0];
@@ -6128,7 +5854,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    // Buscar el editor principal si existe
     if (typeof editorInstance !== 'undefined' && editorInstance) {
       return editorInstance;
     }
@@ -6136,9 +5861,7 @@ function registrarSocketListeners(correoUsuario) {
     return null;
   }
 
-  // Interceptar evento de copiar (Ctrl+C)
   document.addEventListener('copy', function(e) {
-    // Si se usó Ctrl+Shift+C recientemente (en los últimos 500ms), permitir el comportamiento normal
     const tiempoTranscurrido = Date.now() - timestampPortapapelesSistema;
     console.log('Evento copy detectado. Bandera:', usarPortapapelesSistema, 'Acción:', accionPortapapelesSistema, 'Tiempo transcurrido:', tiempoTranscurrido);
     
@@ -6147,7 +5870,6 @@ function registrarSocketListeners(correoUsuario) {
       usarPortapapelesSistema = false; // Resetear la bandera
       accionPortapapelesSistema = '';
       timestampPortapapelesSistema = 0;
-      // NO hacer nada más, dejar que el evento continúe normalmente
       return;
     }
     
@@ -6160,15 +5882,12 @@ function registrarSocketListeners(correoUsuario) {
     const textoSeleccionado = obtenerTextoSeleccionado(elemento);
     
     if (textoSeleccionado) {
-      // Guardar en el portapapeles interno
       portapapelesInterno = textoSeleccionado;
       
-      // Prevenir que se copie al portapapeles del sistema
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
       
-      // Limpiar el clipboardData para evitar que se guarde
       if (e.clipboardData) {
         e.clipboardData.setData('text/plain', '');
       }
@@ -6177,9 +5896,7 @@ function registrarSocketListeners(correoUsuario) {
     }
   }, true); // Usar capture phase para interceptar antes
 
-  // Interceptar evento de cortar (Ctrl+X)
   document.addEventListener('cut', function(e) {
-    // Si se usó Ctrl+Shift+X recientemente (en los últimos 500ms), permitir el comportamiento normal
     const tiempoTranscurrido = Date.now() - timestampPortapapelesSistema;
     console.log('Evento cut detectado. Bandera:', usarPortapapelesSistema, 'Acción:', accionPortapapelesSistema, 'Tiempo transcurrido:', tiempoTranscurrido);
     
@@ -6188,7 +5905,6 @@ function registrarSocketListeners(correoUsuario) {
       usarPortapapelesSistema = false; // Resetear la bandera
       accionPortapapelesSistema = '';
       timestampPortapapelesSistema = 0;
-      // NO hacer nada más, dejar que el evento continúe normalmente
       return;
     }
     
@@ -6201,10 +5917,8 @@ function registrarSocketListeners(correoUsuario) {
     const textoSeleccionado = obtenerTextoSeleccionado(elemento);
     
     if (textoSeleccionado) {
-      // Guardar en el portapapeles interno
       portapapelesInterno = textoSeleccionado;
       
-      // Eliminar el texto seleccionado del elemento
       if (elemento instanceof CodeMirror) {
         const doc = elemento.getDoc();
         doc.replaceSelection('');
@@ -6216,7 +5930,6 @@ function registrarSocketListeners(correoUsuario) {
         elemento.dispatchEvent(new Event('input', { bubbles: true }));
       }
       
-      // Prevenir que se copie al portapapeles del sistema
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -6229,9 +5942,7 @@ function registrarSocketListeners(correoUsuario) {
     }
   }, true);
 
-  // Interceptar evento de pegar (Ctrl+V)
   document.addEventListener('paste', function(e) {
-    // Si se usó Ctrl+Shift+V recientemente (en los últimos 500ms), permitir el comportamiento normal
     const tiempoTranscurrido = Date.now() - timestampPortapapelesSistema;
     console.log('Evento paste detectado. Bandera:', usarPortapapelesSistema, 'Acción:', accionPortapapelesSistema, 'Tiempo transcurrido:', tiempoTranscurrido);
     
@@ -6240,24 +5951,20 @@ function registrarSocketListeners(correoUsuario) {
       usarPortapapelesSistema = false; // Resetear la bandera
       accionPortapapelesSistema = '';
       timestampPortapapelesSistema = 0;
-      // NO hacer nada más, dejar que el evento continúe normalmente
       return;
     }
     
     const elemento = obtenerElementoActivo();
     if (!elemento) {
-      // Si no hay elemento activo, permitir el comportamiento normal
       console.log('No hay elemento activo - permitiendo comportamiento normal');
       return;
     }
 
-    // Siempre prevenir el pegado normal para evitar usar el portapapeles del sistema
     console.log('Interceptando pegado - usando portapapeles interno');
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
     
-    // Solo usar el portapapeles interno
     if (portapapelesInterno) {
       insertarTexto(elemento, portapapelesInterno);
       console.log('Texto pegado desde el portapapeles interno');
@@ -6266,15 +5973,10 @@ function registrarSocketListeners(correoUsuario) {
     }
   }, true);
 
-  // También interceptar atajos de teclado directamente (por si acaso)
   document.addEventListener('keydown', function(e) {
-    // Normalizar la tecla para evitar problemas de mayúsculas/minúsculas
     const tecla = e.key.toLowerCase();
     
-    // Ctrl+Shift+C o Cmd+Shift+C - Usar portapapeles del sistema
-    // Prevenir que abra el inspector del navegador
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'c' && !e.altKey) {
-      // Prevenir el comportamiento por defecto del navegador (abrir inspector)
       e.preventDefault();
       e.stopPropagation();
       
@@ -6284,17 +5986,14 @@ function registrarSocketListeners(correoUsuario) {
         if (textoSeleccionado) {
           console.log('Ctrl+Shift+C detectado - copiando al portapapeles del sistema');
           
-          // Usar la API del portapapeles para copiar directamente
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textoSeleccionado).then(() => {
               console.log('Texto copiado al portapapeles del sistema exitosamente');
             }).catch((err) => {
               console.error('Error al copiar al portapapeles:', err);
-              // Fallback: usar execCommand
               copiarConExecCommand(textoSeleccionado);
             });
           } else {
-            // Fallback para navegadores que no soportan Clipboard API
             copiarConExecCommand(textoSeleccionado);
           }
         } else {
@@ -6304,28 +6003,22 @@ function registrarSocketListeners(correoUsuario) {
       return;
     }
     
-    // Ctrl+Shift+V o Cmd+Shift+V - Usar portapapeles del sistema
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'v' && !e.altKey) {
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'paste';
       timestampPortapapelesSistema = Date.now();
-      // No prevenir el evento, dejar que se pegue normalmente
       console.log('Ctrl+Shift+V detectado en keydown - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
       return;
     }
     
-    // Ctrl+Shift+X o Cmd+Shift+X - Usar portapapeles del sistema
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'x' && !e.altKey) {
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'cut';
       timestampPortapapelesSistema = Date.now();
-      // No prevenir el evento, dejar que se corte normalmente
       console.log('Ctrl+Shift+X detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
       return;
     }
     
-    // Ctrl+C o Cmd+C (sin Shift) - Usar portapapeles interno
-    // IMPORTANTE: Verificar que Shift NO esté presionado para evitar conflictos con Ctrl+Shift+C
     if ((e.ctrlKey || e.metaKey) && tecla === 'c' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -6339,15 +6032,12 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
     
-    // Ctrl+X o Cmd+X (sin Shift) - Usar portapapeles interno
-    // IMPORTANTE: Verificar que Shift NO esté presionado para evitar conflictos con Ctrl+Shift+X
     if ((e.ctrlKey || e.metaKey) && tecla === 'x' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
         const textoSeleccionado = obtenerTextoSeleccionado(elemento);
         if (textoSeleccionado) {
           portapapelesInterno = textoSeleccionado;
-          // Eliminar el texto
           if (elemento instanceof CodeMirror) {
             const doc = elemento.getDoc();
             doc.replaceSelection('');
@@ -6365,8 +6055,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
     
-    // Ctrl+V o Cmd+V (sin Shift) - Usar portapapeles interno
-    // IMPORTANTE: Verificar que Shift NO esté presionado para evitar conflictos con Ctrl+Shift+V
     if ((e.ctrlKey || e.metaKey) && tecla === 'v' && !e.shiftKey && !e.altKey) {
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -6376,17 +6064,11 @@ function registrarSocketListeners(correoUsuario) {
           insertarTexto(elemento, portapapelesInterno);
           console.log('Ctrl+V interceptado - texto pegado desde portapapeles interno');
         } else {
-          // Si no hay portapapeles interno, permitir el pegado normal del sistema
-          // No prevenir el evento
         }
       }
     }
   }, true);
 
-  // ============================================
-  // LIMPIEZA DE EJERCICIOS AL DESCONECTAR/CERRAR
-  // ============================================
-  // Limpiar ejercicios cuando se cierra la página o se recarga
   window.addEventListener('beforeunload', function() {
     if (typeof limpiarEjercicios === 'function') {
       limpiarEjercicios();
@@ -6399,9 +6081,6 @@ function registrarSocketListeners(correoUsuario) {
     }
   });
 
-  // NOTA: No se limpian los ejercicios al cambiar de pestaña (visibilitychange)
-  // Solo se limpian cuando se pierde la conexión a internet (evento 'offline')
-  // o cuando se cierra/recarga la página (beforeunload/pagehide)
   
   </script>  
 </body>
