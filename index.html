@@ -586,16 +586,19 @@
       top: 70px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.85);
       color: white;
       padding: 1rem;
-      border-radius: 8px;
+      border-radius: 10px;
       z-index: 1001;
-      min-width: 200px;
-      max-width: 250px;
+      min-width: 260px;
+      max-width: 300px;
       max-height: 400px;
-      overflow-y: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       transition: box-shadow 0.3s ease;
+      box-sizing: border-box;
     }
 
     #usuarios-conectados.arrastrando {
@@ -607,7 +610,7 @@
     #usuarios-conectados.minimizado {
       max-height: 50px;
       overflow: hidden;
-      padding: 0.5rem;
+      padding: 0.5rem 1rem;
     }
 
     #usuarios-conectados.minimizado #contenido-usuarios {
@@ -616,13 +619,15 @@
 
     #usuarios-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
       margin-bottom: 0.5rem;
       cursor: grab;
       user-select: none;
       padding-bottom: 0.5rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      flex-shrink: 0;
     }
 
     #usuarios-header:active {
@@ -631,10 +636,21 @@
 
     #usuarios-conectados h3 {
       margin: 0;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       color: #00ffcc;
       flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       pointer-events: none;
+    }
+
+    .usuarios-header-buttons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
     }
 
     #minimizar-usuarios-btn {
@@ -643,43 +659,36 @@
       color: white;
       font-size: 1rem;
       cursor: pointer;
-      padding: 0.2rem 0.5rem;
-      border-radius: 3px;
+      padding: 0.25rem 0.4rem;
+      border-radius: 4px;
       transition: background 0.2s;
       pointer-events: auto;
-      z-index: 10;
-      position: relative;
     }
 
     #minimizar-usuarios-btn:hover {
       background: rgba(255, 255, 255, 0.2);
     }
 
-    .usuarios-header-buttons {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-left: 1rem;
-    }
-
     #cerrar-sesion-btn {
-      padding: 6px 14px;
-      font-size: 0.85rem;
-      background: rgba(239, 68, 68, 0.2);
+      padding: 0.4rem 0.65rem;
+      font-size: 0.8rem;
+      background: rgba(239, 68, 68, 0.3);
       color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      border-radius: 6px;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      border-radius: 5px;
       cursor: pointer;
       white-space: nowrap;
     }
 
     #cerrar-sesion-btn:hover {
-      background: rgba(239, 68, 68, 0.35);
+      background: rgba(239, 68, 68, 0.45);
       color: #fff;
     }
 
     #contenido-usuarios {
       margin-top: 0.5rem;
+      overflow-y: auto;
+      min-height: 0;
     }
 
     .toggle-cursos {
@@ -1631,7 +1640,7 @@
         </div>
         <div id="profesor-panel-link" class="profesor-panel">
           <h4>Abrir link en dispositivo</h4>
-          <input type="url" id="profesor-link-url" placeholder="https://ejemplo.com">
+          <input type="text" id="profesor-link-url" placeholder="URL (https://...) o texto para buscar en Google Imágenes">
           <select id="profesor-link-usuario">
             <option value="">-- Seleccionar usuario --</option>
           </select>
@@ -7062,11 +7071,11 @@ document.addEventListener("keydown", function(e) {
         let url = document.getElementById('profesor-link-url')?.value?.trim();
         const socketIdDestino = document.getElementById('profesor-link-usuario')?.value;
         if (!url) {
-          alert('Ingresá una URL válida');
+          alert('Ingresá una URL o texto para buscar');
           return;
         }
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = 'https://' + url;
+          url = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(url);
         }
         if (!socketIdDestino) {
           alert('Seleccioná un usuario');
