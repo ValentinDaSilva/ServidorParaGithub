@@ -686,7 +686,10 @@
     }
 
     .toggle-switch.active {
-      background: #007bff;
+      background: #6366f1;
+    }
+    #modal-usuario .toggle-switch.active {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     }
 
     .toggle-switch::after {
@@ -726,27 +729,101 @@
       font-size: 0.85rem;
     }
 
-    /* Modal de nombre de usuario */
+    /* Modal de nombre de usuario - estética mejorada */
     #modal-usuario {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.9);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.97) 0%, rgba(30, 58, 138, 0.95) 50%, rgba(79, 70, 229, 0.93) 100%);
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 10000;
       color: white;
+      font-family: 'Roboto', sans-serif;
     }
 
     #modal-usuario .contenido {
-      background: #222;
-      padding: 2rem;
-      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+      padding: 2.5rem 3rem;
+      border-radius: 20px;
       text-align: center;
-      min-width: 300px;
+      min-width: 380px;
+      max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    #modal-usuario .contenido h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #modal-usuario .contenido > p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+    }
+
+    #modal-usuario input {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      margin: 0;
+      font-size: 1rem;
+      border: 2px solid rgba(99, 102, 241, 0.4);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      color: white;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #modal-usuario input:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    #modal-usuario input::placeholder {
+      color: #64748b;
+    }
+
+    #modal-usuario .toggle-cursos {
+      margin-top: 1.25rem;
+      padding: 0.75rem 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    #modal-usuario .toggle-cursos label {
+      color: #cbd5e1;
+      font-size: 0.9rem;
+    }
+
+    #modal-usuario button[onclick="conectarUsuario()"] {
+      width: 100%;
+      padding: 1rem 2rem;
+      margin-top: 1.5rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    #modal-usuario button[onclick="conectarUsuario()"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
     }
 
     #modal-seleccionar-archivo {
@@ -772,18 +849,6 @@
       max-width: 600px;
     }
 
-    #modal-usuario input {
-      width: 100%;
-      padding: 0.8rem;
-      margin: 1rem 0;
-      font-size: 1rem;
-      border: 2px solid #007bff;
-      border-radius: 5px;
-      background: #333;
-      color: white;
-      box-sizing: border-box;
-    }
-    
     /* Estilos para el menú de sugerencias de correo */
     #sugerencias-correo {
       background: #333 !important;
@@ -802,21 +867,6 @@
     
     #sugerencias-correo div:last-child {
       border-bottom: none !important;
-    }
-
-    #modal-usuario button {
-      padding: 0.8rem 2rem;
-      font-size: 1rem;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
-
-    #modal-usuario button:hover {
-      background-color: #0056b3;
     }
 
     /* Modal de espera de reconexión */
@@ -928,6 +978,127 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
     }
+    #btn-menu-profesor {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #btn-menu-profesor:hover {
+      background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+    }
+    /* Menú profesor - tiles y paneles */
+    #menu-profesor {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 16px;
+      padding: 1rem;
+      min-width: 340px;
+      max-width: 380px;
+      max-height: 85vh;
+      overflow-y: auto;
+      z-index: 1100;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    #menu-profesor .profesor-tiles {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    #menu-profesor .profesor-tile {
+      flex: 1;
+      min-width: 70px;
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #a5b4fc;
+      font-size: 0.75rem;
+    }
+    #menu-profesor .profesor-tile:hover {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: #c7d2fe;
+    }
+    #menu-profesor .profesor-tile.activo {
+      background: rgba(99, 102, 241, 0.35);
+      border-color: #6366f1;
+      color: #fff;
+    }
+    #menu-profesor .profesor-tile .tile-icon {
+      font-size: 1.5rem;
+    }
+    #menu-profesor .profesor-panel {
+      display: none;
+      animation: profesorPanelIn 0.2s ease;
+    }
+    #menu-profesor .profesor-panel.visible {
+      display: block;
+    }
+    @keyframes profesorPanelIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #menu-profesor .profesor-panel h4 {
+      margin: 0 0 0.75rem 0;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+    }
+    #menu-profesor .profesor-panel select,
+    #menu-profesor .profesor-panel input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 8px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+    #menu-profesor .profesor-panel button[type="button"] {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 4px;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: transform 0.15s;
+    }
+    #menu-profesor .profesor-panel .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+    #menu-profesor .profesor-panel .btn-group button {
+      flex: 1;
+    }
+    #profesor-pizarra-abrir { background: #16a34a !important; color: white !important; }
+    #profesor-pizarra-abrir:hover { background: #15803d !important; }
+    #profesor-pizarra-cerrar { background: #dc2626 !important; color: white !important; }
+    #profesor-pizarra-cerrar:hover { background: #b91c1c !important; }
+    #profesor-forzar-btn { background: #7c3aed !important; color: white !important; }
+    #profesor-forzar-btn:hover { background: #6d28d9 !important; }
+    #profesor-abrir-link-btn { background: #2563eb !important; color: white !important; }
+    #profesor-abrir-link-btn:hover { background: #1d4ed8 !important; }
     #pizarra-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -1321,12 +1492,15 @@
   <div id="modal-usuario">
     <div class="contenido">
       <h2>Editor Multiusuario</h2>
-      <p>Ingresá tu correo para comenzar:</p>
+      <p>Ingresá tu correo para comenzar</p>
       <div style="position: relative; display: inline-block; width: 100%;">
         <input type="email" id="input-usuario" placeholder="tu@correo.com" autocomplete="off" />
-        <div id="sugerencias-correo" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #333; border: 1px solid #555; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.3); margin-top: 2px; color: white;"></div>
+        <div id="sugerencias-correo" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30,41,59,0.98); border: 1px solid rgba(99,102,241,0.3); border-radius: 10px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.4); margin-top: 8px; color: white;"></div>
       </div>
-      <br>
+      <div class="toggle-cursos">
+        <label for="toggle-modo-profesor">Modo profesor (control de clase)</label>
+        <div class="toggle-switch" id="toggle-modo-profesor" title="Activar para acceder al menú de profesor"></div>
+      </div>
       <button onclick="conectarUsuario()">Conectar</button>
     </div>
   </div>
@@ -1380,6 +1554,52 @@
   <div id="botones-derecha">
     <button id="abrir-editor" onclick="toggleEditor()">Editor</button>
     <button id="abrir-pizarra" title="Pizarra colaborativa" onclick="togglePizarra()">✏️ Pizarra</button>
+    <!-- Menú profesor (solo visible en modo profesor) -->
+    <div id="menu-profesor-wrap" style="position: relative; display: none;">
+      <button id="btn-menu-profesor" title="Menú de profesor">🎓 Profesor</button>
+      <div id="menu-profesor">
+        <div class="profesor-tiles">
+          <div class="profesor-tile activo" data-panel="pizarra" title="Pizarra colaborativa">
+            <span class="tile-icon">✏️</span>
+            <span>Pizarra</span>
+          </div>
+          <div class="profesor-tile" data-panel="forzar" title="Forzar archivo e índice">
+            <span class="tile-icon">📂</span>
+            <span>Forzar</span>
+          </div>
+          <div class="profesor-tile" data-panel="link" title="Abrir link en dispositivo">
+            <span class="tile-icon">🔗</span>
+            <span>Link</span>
+          </div>
+        </div>
+        <div id="profesor-panel-pizarra" class="profesor-panel visible">
+          <h4>Pizarra colaborativa</h4>
+          <div class="btn-group">
+            <button type="button" id="profesor-pizarra-abrir">Abrir para todos</button>
+            <button type="button" id="profesor-pizarra-cerrar">Cerrar para todos</button>
+          </div>
+        </div>
+        <div id="profesor-panel-forzar" class="profesor-panel">
+          <h4>Forzar archivo e índice</h4>
+          <select id="profesor-archivo-select">
+            <option value="">-- Cargar archivos --</option>
+          </select>
+          <input type="number" id="profesor-indice-input" min="1" placeholder="Índice (ej: 1)">
+          <select id="profesor-forzar-usuario">
+            <option value="">-- Seleccionar alumno --</option>
+          </select>
+          <button type="button" id="profesor-forzar-btn">Forzar archivo e índice</button>
+        </div>
+        <div id="profesor-panel-link" class="profesor-panel">
+          <h4>Abrir link en dispositivo</h4>
+          <input type="url" id="profesor-link-url" placeholder="https://ejemplo.com">
+          <select id="profesor-link-usuario">
+            <option value="">-- Seleccionar usuario --</option>
+          </select>
+          <button type="button" id="profesor-abrir-link-btn">Abrir en nueva pestaña</button>
+        </div>
+      </div>
+    </div>
   </div>
   <button id="cargar-ejercicios" title="Cargar ejercicios desde servidor 📂" onclick="mostrarModalSeleccionarArchivo()">📂</button>
   <input type="file" id="archivo-ejercicios" accept=".js" style="display: none;" />
@@ -1602,6 +1822,7 @@
     let miUsuario = null;
     let miColor = null;
     let sincronizando = false;
+    let modoProfesor = false;
     let codigoLocal = '';
     let cursosRemotos = new Map(); // socketId -> {marker, username, color}
     let mostrarCursosRemotos = true; // Estado del toggle de cursos remotos
@@ -1980,6 +2201,30 @@
     modal.style.display = "flex";
   }
 
+  // Cargar lista de archivos para el select del menú profesor
+  function cargarListaArchivosParaProfesor() {
+    const select = document.getElementById('profesor-archivo-select');
+    if (!select) return;
+    select.innerHTML = '<option value="">Cargando...</option>';
+    const urlsArchivos = obtenerURLsServidorArchivos();
+    const serverURL = urlsArchivos[0] || 'http://localhost:4001';
+    fetch(`${serverURL}/listar-archivos`)
+      .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+      .then(data => {
+        select.innerHTML = '<option value="">-- Seleccionar archivo --</option>';
+        (data.archivos || []).forEach(archivo => {
+          const opt = document.createElement('option');
+          opt.value = archivo;
+          opt.textContent = archivo;
+          select.appendChild(opt);
+        });
+      })
+      .catch(err => {
+        console.warn('Error al cargar archivos para profesor:', err);
+        select.innerHTML = '<option value="">Error al cargar</option>';
+      });
+  }
+
   // Función para mostrar modal de selección de archivos
   function mostrarModalSeleccionarArchivo() {
     const modal = document.getElementById("modal-seleccionar-archivo");
@@ -2008,8 +2253,10 @@
   }
 
   // Función para cargar el archivo seleccionado
-  function cargarArchivoSeleccionado(nombreArchivo, serverURL) {
-    cerrarModalSeleccionarArchivo();
+  // opciones: { omitirIniciar: true } - no llama a iniciar() al terminar (útil cuando el profesor fuerza archivo/índice)
+  function cargarArchivoSeleccionado(nombreArchivo, serverURL, opciones) {
+    const omitirIniciar = opciones && opciones.omitirIniciar;
+    if (!omitirIniciar) cerrarModalSeleccionarArchivo();
     
     // Si no se proporciona serverURL, obtenerla de la lista o usar la función de detección
     if (!serverURL) {
@@ -2088,7 +2335,7 @@
               if(inputArchivo) inputArchivo.style.display = "none";
               if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
               if(btnIniciar) btnIniciar.disabled = false;
-              if (btnIniciar) btnIniciar.click();
+              if (!omitirIniciar && btnIniciar) btnIniciar.click();
               resolve();
             } else {
               throw new Error('El archivo no exporta la variable "ejercicios"');
@@ -2247,7 +2494,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-    function iniciar() {
+    function iniciar(skipConfirm) {
       
       if (typeof ejercicios == "undefined" || ejercicios.length === 0) {
         mostrarModalSeleccionarArchivo();
@@ -2291,9 +2538,11 @@ window.addEventListener("DOMContentLoaded", async () => {
       } else {
         indice = sessionStorage.getItem("indice") ? parseInt(sessionStorage.getItem("indice")) : 0;
       }
-      document.querySelector('button[onclick="siguiente()"]').style.display = "inline-block";
-      document.querySelector('button[onclick="iniciar()"]').outerHTML = '<button onclick="anterior()">Anterior</button>';
-       if (confirm("¿Querés pegar automáticamente tu código al abrir la validacion?")) {
+      var btnSiguiente = document.querySelector('button[onclick="siguiente()"]');
+      if (btnSiguiente) btnSiguiente.style.display = "inline-block";
+      var btnIniciarEl = document.querySelector('button[onclick="iniciar()"]');
+      if (btnIniciarEl) btnIniciarEl.outerHTML = '<button onclick="anterior()">Anterior</button>';
+       if (!skipConfirm && confirm("¿Querés pegar automáticamente tu código al abrir la validacion?")) {
         if (navigator.clipboard && navigator.clipboard.readText) {
           navigator.clipboard.readText().catch(() => {});
         }
@@ -4822,6 +5071,14 @@ document.addEventListener("keydown", function(e) {
       cargarCorreosRegistrados();
       // Configurar autocompletado del input de correo
       configurarAutocompletadoCorreo();
+      // Toggle modo profesor
+      const toggleProfesor = document.getElementById('toggle-modo-profesor');
+      if (toggleProfesor && !toggleProfesor.hasAttribute('data-listener-added')) {
+        toggleProfesor.addEventListener('click', () => {
+          toggleProfesor.classList.toggle('active');
+        });
+        toggleProfesor.setAttribute('data-listener-added', 'true');
+      }
     });
     
     // También cargar correos cuando se muestra el modal (por si se abre después)
@@ -4846,6 +5103,8 @@ document.addEventListener("keydown", function(e) {
     
     function conectarUsuario() {
       const correoUsuario = document.getElementById('input-usuario').value.trim();
+      const toggleProfesor = document.getElementById('toggle-modo-profesor');
+      modoProfesor = toggleProfesor && toggleProfesor.classList.contains('active');
       
       if (!correoUsuario) {
         alert('Por favor ingresá tu correo');
@@ -5104,6 +5363,13 @@ document.addEventListener("keydown", function(e) {
         // Ocultar modal y mostrar interfaz
         document.getElementById('modal-usuario').style.display = 'none';
         document.getElementById('usuarios-conectados').style.display = 'block';
+        
+        // Mostrar menú profesor si está en modo profesor
+        const menuProfesorWrap = document.getElementById('menu-profesor-wrap');
+        if (menuProfesorWrap) {
+          menuProfesorWrap.style.display = modoProfesor ? 'block' : 'none';
+          if (modoProfesor) inicializarMenuProfesor();
+        }
         
         // Inicializar event listeners si no se han inicializado aún
         const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
@@ -5608,6 +5874,40 @@ document.addEventListener("keydown", function(e) {
           pizarraStrokesLocal.pop();
           if (typeof pizarraRedraw === 'function') pizarraRedraw();
         }
+      });
+      
+      // Eventos modo profesor (recibir órdenes del profesor)
+      socket.on('profesor-pizarra-abrir', () => {
+        if (typeof pizarraAbierta !== 'undefined' && !pizarraAbierta && typeof togglePizarra === 'function') {
+          togglePizarra();
+        }
+      });
+      socket.on('profesor-pizarra-cerrar', () => {
+        if (typeof pizarraAbierta !== 'undefined' && pizarraAbierta && typeof togglePizarra === 'function') {
+          togglePizarra();
+        }
+      });
+      socket.on('profesor-abrir-link', (data) => {
+        if (data && data.url) {
+          window.open(data.url, '_blank');
+        }
+      });
+      socket.on('profesor-forzar-archivo-indice', (data) => {
+        if (!data || data.nombreArchivo === undefined) return;
+        const { nombreArchivo, indice: indiceRecibido } = data;
+        const indiceNum = typeof indiceRecibido === 'number' ? indiceRecibido : 0;
+        const urlsArchivos = obtenerURLsServidorArchivos();
+        const serverURL = urlsArchivos[0] || 'http://localhost:4001';
+        indice = indiceNum;
+        sessionStorage.setItem('indice', indiceNum);
+        sessionStorage.setItem('indiceServidor', indiceNum);
+        sessionStorage.setItem('nombreArchivoIndiceServidor', nombreArchivo);
+        cargarArchivoSeleccionado(nombreArchivo, serverURL, { omitirIniciar: true }).then(() => {
+          iniciar(true);
+          if (socket && socket.connected && miUsuario) {
+            socket.emit('actualizar-indice-ejercicio', { indice: indiceNum, nombreArchivo: nombreArchivo });
+          }
+        }).catch(() => {});
       });
 
       socket.on('disconnect', () => {
@@ -6531,6 +6831,26 @@ document.addEventListener("keydown", function(e) {
         });
       });
       
+      // Actualizar selects del menú profesor (usuarios distintos a mí)
+      const selectLink = document.getElementById('profesor-link-usuario');
+      const selectForzar = document.getElementById('profesor-forzar-usuario');
+      if (modoProfesor) {
+        [selectLink, selectForzar].forEach(selectProfesor => {
+          if (selectProfesor) {
+            const optionsExistentes = selectProfesor.querySelectorAll('option:not(:first-child)');
+            optionsExistentes.forEach(o => o.remove());
+            usuarios.forEach(usuario => {
+              if (usuario.socketId !== socket.id) {
+                const opt = document.createElement('option');
+                opt.value = usuario.socketId;
+                opt.textContent = obtenerNombreUsuario(usuario.username) || usuario.username;
+                selectProfesor.appendChild(opt);
+              }
+            });
+          }
+        });
+      }
+      
       usuarios.forEach(usuario => {
         // No mostrar nuestro propio usuario
         if (usuario.socketId === socket.id) return;
@@ -6562,6 +6882,110 @@ document.addEventListener("keydown", function(e) {
         });
         
         lista.appendChild(item);
+      });
+    }
+    
+    function inicializarMenuProfesor() {
+      const btnMenu = document.getElementById('btn-menu-profesor');
+      const menu = document.getElementById('menu-profesor');
+      if (!btnMenu || !menu) return;
+      
+      if (btnMenu.hasAttribute('data-listener-added')) return;
+      btnMenu.setAttribute('data-listener-added', 'true');
+      
+      function mostrarPanelProfesor(panelId) {
+        menu.querySelectorAll('.profesor-panel').forEach(p => p.classList.remove('visible'));
+        menu.querySelectorAll('.profesor-tile').forEach(t => t.classList.remove('activo'));
+        var panel = document.getElementById('profesor-panel-' + panelId);
+        var tile = menu.querySelector('.profesor-tile[data-panel="' + panelId + '"]');
+        if (panel) panel.classList.add('visible');
+        if (tile) tile.classList.add('activo');
+      }
+      
+      menu.querySelectorAll('.profesor-tile').forEach(tile => {
+        tile.addEventListener('click', () => {
+          var panelId = tile.getAttribute('data-panel');
+          if (panelId) mostrarPanelProfesor(panelId);
+        });
+      });
+      
+      btnMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const visible = menu.style.display === 'block';
+        menu.style.display = visible ? 'none' : 'block';
+        if (!visible) {
+          cargarListaArchivosParaProfesor();
+          mostrarPanelProfesor('pizarra');
+        }
+      });
+      
+      document.addEventListener('click', function cerrarMenuProfesor(e) {
+        if (menu.style.display === 'block' && !menu.contains(e.target) && !btnMenu.contains(e.target)) {
+          menu.style.display = 'none';
+        }
+      });
+      
+      document.getElementById('profesor-pizarra-abrir')?.addEventListener('click', () => {
+        if (socket && socket.connected) {
+          socket.emit('profesor-pizarra-abrir');
+          if (menu) menu.style.display = 'none';
+        }
+      });
+      
+      document.getElementById('profesor-pizarra-cerrar')?.addEventListener('click', () => {
+        if (socket && socket.connected) {
+          socket.emit('profesor-pizarra-cerrar');
+          if (menu) menu.style.display = 'none';
+        }
+      });
+      
+      document.getElementById('profesor-forzar-btn')?.addEventListener('click', () => {
+        const archivoSelect = document.getElementById('profesor-archivo-select');
+        const indiceInput = document.getElementById('profesor-indice-input');
+        const usuarioSelect = document.getElementById('profesor-forzar-usuario');
+        const nombreArchivo = archivoSelect?.value;
+        const indiceVal = parseInt(indiceInput?.value || '1', 10);
+        const socketIdDestino = usuarioSelect?.value;
+        if (!nombreArchivo) {
+          alert('Seleccioná un archivo');
+          return;
+        }
+        if (isNaN(indiceVal) || indiceVal < 1) {
+          alert('Ingresá un índice válido (número >= 1)');
+          return;
+        }
+        if (!socketIdDestino) {
+          alert('Seleccioná un alumno');
+          return;
+        }
+        if (socket && socket.connected) {
+          socket.emit('profesor-forzar-archivo-indice', { 
+            targetSocketId: socketIdDestino, 
+            nombreArchivo: nombreArchivo, 
+            indice: indiceVal - 1 
+          });
+          if (menu) menu.style.display = 'none';
+        }
+      });
+      
+      document.getElementById('profesor-abrir-link-btn')?.addEventListener('click', () => {
+        let url = document.getElementById('profesor-link-url')?.value?.trim();
+        const socketIdDestino = document.getElementById('profesor-link-usuario')?.value;
+        if (!url) {
+          alert('Ingresá una URL válida');
+          return;
+        }
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        if (!socketIdDestino) {
+          alert('Seleccioná un usuario');
+          return;
+        }
+        if (socket && socket.connected) {
+          socket.emit('profesor-abrir-link', { targetSocketId: socketIdDestino, url: url });
+          if (menu) menu.style.display = 'none';
+        }
       });
     }
     

@@ -16,7 +16,7 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-  const carpetaEjercicios = "C:/Users/valed/Desktop/Repositorios/Algoritmos-Y-Estructuras-De-Datos/Ejercicios";
+  const carpetaEjercicios = "C:/Users/Valentin/Desktop/Repositorios/Algoritmos-Y-Estructuras-De-Datos/Ejercicios";
   const MAX_OUTPUT_LENGTH = 100 * 1024;
   const archivoProgreso = path.join(__dirname, 'progreso-usuarios.json');
 
@@ -814,6 +814,29 @@ if (!fs.existsSync(tempDir)) {
       if (pizarraStrokes.length > 0) {
         pizarraStrokes.pop();
         socket.to('pizarra').emit('pizarra-undo');
+      }
+    });
+
+    // --- Modo profesor ---
+    socket.on('profesor-pizarra-abrir', () => {
+      io.emit('profesor-pizarra-abrir');
+    });
+    socket.on('profesor-pizarra-cerrar', () => {
+      io.emit('profesor-pizarra-cerrar');
+    });
+    socket.on('profesor-abrir-link', (data) => {
+      const { targetSocketId, url } = data || {};
+      if (targetSocketId && url) {
+        io.to(targetSocketId).emit('profesor-abrir-link', { url });
+      }
+    });
+    socket.on('profesor-forzar-archivo-indice', (data) => {
+      const { targetSocketId, nombreArchivo, indice } = data || {};
+      if (targetSocketId && nombreArchivo !== undefined) {
+        io.to(targetSocketId).emit('profesor-forzar-archivo-indice', { 
+          nombreArchivo, 
+          indice: typeof indice === 'number' ? indice : 0 
+        });
       }
     });
 
