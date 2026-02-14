@@ -2,15 +2,15 @@
 // Cambia esta URL según donde esté ejecutándose tu servidor
 
 // Para desarrollo local (localhost)
-const SERVER_URL_LOCAL = 'http://localhost:3002';
+const SERVER_URL_LOCAL = 'http://localhost:4002';
 
-// Para servidor en red local (ejemplo: http://192.168.1.100:3002)
+// Para servidor en red local (ejemplo: http://192.168.1.100:4002)
 // ⚠️ IMPORTANTE: Configura aquí la IP de tu servidor local para acceso desde otras PCs en tu red
 // Puedes encontrar tu IP ejecutando el servidor y viendo el mensaje en la consola
-const SERVER_URL_NETWORK = 'http://192.168.96.91:3002';
+const SERVER_URL_NETWORK = 'http://192.168.96.91:4002';
 
 // Para servidor en producción (no se usa en este caso, pero lo dejamos por compatibilidad)
-const SERVER_URL_PRODUCTION = 'https://tu-servidor.com:3002';
+const SERVER_URL_PRODUCTION = 'https://tu-servidor.com:4002';
 
 // Selecciona qué URL usar
 // 'auto' - intenta localhost primero, luego red local (perfecto para GitHub Pages)

@@ -19,6 +19,9 @@
   <!-- NOTA: Para GitHub Pages, crea un archivo config.js en tu repositorio con la URL de tu servidor -->
   <script src="config.js"></script>
 
+  <!-- SweetAlert2 for nice alerts -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <!-- CodeMirror -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material.min.css">
@@ -972,9 +975,12 @@
   <div id="modal-seleccionar-archivo" style="display: none;">
     <div class="contenido">
       <h2>📂 Seleccionar archivo de ejercicios</h2>
-      <p>Elegí el archivo .js que querés cargar:</p>
-      <div id="lista-archivos" style="max-height: 400px; overflow-y: auto; margin: 1rem 0; text-align: left;"></div>
-      <button onclick="cerrarModalSeleccionarArchivo()" style="margin-top: 1rem;">Cancelar</button>
+      <p>Elegí el archivo .js que querés cargar desde el servidor:</p>
+      <div id="lista-archivos" style="max-height: 400px; overflow-y: auto; margin: 1rem 0; text-align: left; padding: 0.5rem;"></div>
+      <div id="mensaje-cargando-archivos" style="text-align: center; padding: 1rem; color: #aaa;">
+        <p>🔄 Consultando carpeta del servidor...</p>
+      </div>
+      <button onclick="cerrarModalSeleccionarArchivo()" style="margin-top: 1rem; padding: 0.8rem 2rem; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer;">Cancelar</button>
     </div>
   </div>
 
@@ -1002,8 +1008,8 @@
 
   <!-- Botones fijos -->
   <button id="abrir-editor" onclick="toggleEditor()">Editor</button>
-  <button id="cargar-ejercicios" title="Cargar ejercicios 📂" onclick="document.getElementById('archivo-ejercicios').click()">📂</button>
-  <input type="file" id="archivo-ejercicios" accept=".js" />
+  <button id="cargar-ejercicios" title="Cargar ejercicios desde servidor 📂" onclick="mostrarModalSeleccionarArchivo()">📂</button>
+  <input type="file" id="archivo-ejercicios" accept=".js" style="display: none;" />
 
   <!-- Contenedor de ejercicios -->
   <div id="contenedor">
@@ -1361,38 +1367,38 @@
   if(inputArchivo) inputArchivo.style.display = "none";
   if(contenedorCargaManual) contenedorCargaManual.style.display = "none";
 
-  // Función para obtener URLs del servidor de archivos estáticos (puerto 3001)
+  // Función para obtener URLs del servidor de archivos estáticos (puerto 4001)
   function obtenerURLsServidorArchivos() {
     const urlsToTry = [];
     const currentHostname = window.location.hostname;
     const protocol = window.location.protocol;
     
-    // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página, pero cambiar el puerto a 3001
+    // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página, pero cambiar el puerto a 4001
     if (currentHostname) {
       if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-        // Es una IP de red, construir URL con puerto 3001
-        const archivosURL = `${protocol}//${currentHostname}:3001`;
+        // Es una IP de red, construir URL con puerto 4001
+        const archivosURL = `${protocol}//${currentHostname}:4001`;
         urlsToTry.push(archivosURL);
         console.log('🌐 URL de servidor de archivos detectada desde red:', archivosURL);
       } else {
         // Es localhost
-        urlsToTry.push('http://localhost:3001');
+        urlsToTry.push('http://localhost:4001');
         console.log('🏠 Usando localhost para servidor de archivos');
       }
     }
     
-    // PRIORIDAD 2: URLs desde config.js (si existe) - cambiar puerto a 3001
+    // PRIORIDAD 2: URLs desde config.js (si existe) - cambiar puerto a 4001
     if (typeof getServerURLs === 'function') {
       try {
         const configUrls = getServerURLs();
         configUrls.forEach(url => {
           if (url && typeof url === 'string') {
-            // Cambiar el puerto a 3001
+            // Cambiar el puerto a 4001
             let archivosURL = url;
             if (archivosURL.includes(':')) {
-              archivosURL = archivosURL.replace(/:(\d+)(\/|$)/, ':3001$2');
+              archivosURL = archivosURL.replace(/:(\d+)(\/|$)/, ':4001$2');
             } else {
-              archivosURL = archivosURL.replace(/(https?:\/\/[^\/]+)(\/|$)/, '$1:3001$2');
+              archivosURL = archivosURL.replace(/(https?:\/\/[^\/]+)(\/|$)/, '$1:4001$2');
             }
             if (!urlsToTry.includes(archivosURL)) {
               urlsToTry.push(archivosURL);
@@ -1407,7 +1413,7 @@
       try {
         const configUrl = getServerURL();
         if (configUrl && typeof configUrl === 'string') {
-          let archivosURL = configUrl.replace(':3002', ':3001');
+          let archivosURL = configUrl.replace(':4002', ':4001');
           if (!urlsToTry.includes(archivosURL)) {
             urlsToTry.push(archivosURL);
             console.log('  ➕ Agregada URL desde getServerURL para archivos:', archivosURL);
@@ -1420,7 +1426,7 @@
     
     // PRIORIDAD 3: Fallback - localhost si no hay nada más
     if (urlsToTry.length === 0) {
-      urlsToTry.push('http://localhost:3001');
+      urlsToTry.push('http://localhost:4001');
       console.log('⚠️ No se detectaron URLs, usando fallback localhost para archivos');
     }
     
@@ -1432,13 +1438,33 @@
   function intentarObtenerListaArchivos(urls, index) {
     if (index >= urls.length) {
       const loader = document.getElementById("loader-spinner");
+      const mensajeCargando = document.getElementById("mensaje-cargando-archivos");
+      const listaArchivos = document.getElementById("lista-archivos");
+      
       if (loader) loader.style.display = "none";
-      alert("No se pudo conectar al servidor de archivos.\n\nURLs intentadas:\n- " + urls.join('\n- '));
+      if (mensajeCargando) mensajeCargando.style.display = "none";
+      
+      listaArchivos.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: #ff6b6b;">
+          <p style="font-size: 1.1rem; margin-bottom: 1rem;">❌ No se pudo conectar al servidor de archivos</p>
+          <p style="font-size: 0.9rem; color: #aaa;">URLs intentadas:</p>
+          <ul style="text-align: left; display: inline-block; color: #aaa; margin-top: 0.5rem;">
+            ${urls.map(url => `<li>${url}</li>`).join('')}
+          </ul>
+          <p style="font-size: 0.9rem; color: #aaa; margin-top: 1rem;">Verifica que el servidor esté corriendo en el puerto 4001</p>
+        </div>
+      `;
       return;
     }
     
     const serverURL = urls[index];
+    const mensajeCargando = document.getElementById("mensaje-cargando-archivos");
+    
     console.log(`🔌 Intentando obtener lista de archivos desde servidor ${index + 1}/${urls.length}: ${serverURL}`);
+    
+    if (mensajeCargando) {
+      mensajeCargando.innerHTML = `<p>🔄 Consultando: ${serverURL}...</p>`;
+    }
     
     fetch(`${serverURL}/listar-archivos`)
       .then(response => {
@@ -1452,7 +1478,10 @@
         if (loader) loader.style.display = "none";
         
         if (!data.archivos || data.archivos.length === 0) {
-          alert("No se encontraron archivos .js en el servidor");
+          const listaArchivos = document.getElementById("lista-archivos");
+          const mensajeCargando = document.getElementById("mensaje-cargando-archivos");
+          if (mensajeCargando) mensajeCargando.style.display = "none";
+          listaArchivos.innerHTML = '<p style="text-align: center; color: #ff6b6b; padding: 2rem;">⚠️ No se encontraron archivos .js en la carpeta del servidor.</p>';
           return;
         }
         
@@ -1469,6 +1498,10 @@
   function mostrarListaArchivos(archivos, serverURL) {
     const modal = document.getElementById("modal-seleccionar-archivo");
     const listaArchivos = document.getElementById("lista-archivos");
+    const mensajeCargando = document.getElementById("mensaje-cargando-archivos");
+    
+    // Ocultar mensaje de carga
+    if (mensajeCargando) mensajeCargando.style.display = "none";
     
     // Limpiar lista anterior
     listaArchivos.innerHTML = "";
@@ -1476,11 +1509,17 @@
     // Guardar la URL del servidor para usarla al cargar archivos
     listaArchivos.setAttribute('data-server-url', serverURL);
     
+    if (archivos.length === 0) {
+      listaArchivos.innerHTML = '<p style="text-align: center; color: #aaa; padding: 2rem;">No se encontraron archivos .js en la carpeta del servidor.</p>';
+      modal.style.display = "flex";
+      return;
+    }
+    
     // Crear botones para cada archivo
-    archivos.forEach(archivo => {
+    archivos.forEach((archivo, index) => {
       const boton = document.createElement("button");
-      boton.textContent = archivo;
-      boton.style.cssText = "display: block; width: 100%; padding: 0.8rem; margin: 0.5rem 0; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; text-align: left;";
+      boton.textContent = `📄 ${archivo}`;
+      boton.style.cssText = "display: block; width: 100%; padding: 0.8rem; margin: 0.5rem 0; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; text-align: left; font-size: 1rem; transition: background 0.2s;";
       boton.onmouseover = function() { this.style.background = "#0056b3"; };
       boton.onmouseout = function() { this.style.background = "#007bff"; };
       boton.onclick = function() {
@@ -1489,6 +1528,12 @@
       listaArchivos.appendChild(boton);
     });
     
+    // Mostrar cantidad de archivos encontrados
+    const info = document.createElement("p");
+    info.textContent = `✅ ${archivos.length} archivo(s) encontrado(s)`;
+    info.style.cssText = "text-align: center; color: #4CAF50; margin-top: 1rem; font-size: 0.9rem;";
+    listaArchivos.appendChild(info);
+    
     modal.style.display = "flex";
   }
 
@@ -1496,6 +1541,13 @@
   function mostrarModalSeleccionarArchivo() {
     const modal = document.getElementById("modal-seleccionar-archivo");
     const loader = document.getElementById("loader-spinner");
+    const mensajeCargando = document.getElementById("mensaje-cargando-archivos");
+    const listaArchivos = document.getElementById("lista-archivos");
+    
+    // Mostrar modal inmediatamente con mensaje de carga
+    modal.style.display = "flex";
+    if (mensajeCargando) mensajeCargando.style.display = "block";
+    listaArchivos.innerHTML = "";
     
     if (loader) loader.style.display = "flex";
     
@@ -1524,19 +1576,25 @@
       if (!serverURL) {
         // Obtener la primera URL disponible
         const urlsArchivos = obtenerURLsServidorArchivos();
-        serverURL = urlsArchivos[0] || 'http://localhost:3001';
+        serverURL = urlsArchivos[0] || 'http://localhost:4001';
       }
     }
     
     // Guardar la selección de archivo con expiración de 30 minutos
     guardarArchivoSeleccionado(nombreArchivo, serverURL);
     
-    // Guardar el nombre del archivo actual globalmente
-    nombreArchivoActual = nombreArchivo;
-    
-    // Construir la URL completa del archivo
-    const urlArchivo = `${serverURL}/${nombreArchivo}`;
-    console.log(`📥 Intentando cargar archivo: ${urlArchivo} desde servidor: ${serverURL}`);
+              // Guardar el nombre del archivo actual globalmente
+              nombreArchivoActual = nombreArchivo;
+              
+              // Notificar al servidor sobre el cambio de archivo
+              if (socket && socket.connected && miUsuario) {
+                // Obtener el índice actual para este archivo desde el servidor
+                // El servidor lo enviará cuando se confirme la conexión
+              }
+              
+              // Construir la URL completa del archivo
+              const urlArchivo = `${serverURL}/${nombreArchivo}`;
+              console.log(`📥 Intentando cargar archivo: ${urlArchivo} desde servidor: ${serverURL}`);
     
     return new Promise((resolve, reject) => {
       const loader = document.getElementById("loader-spinner");
@@ -1571,6 +1629,16 @@
                 sessionStorage.removeItem("indiceServidor");
                 sessionStorage.removeItem("nombreArchivoIndiceServidor");
                 console.log(`🔄 Limpiando índice del servidor porque el archivo cambió de "${nombreArchivoIndiceServidor}" a "${nombreArchivo}"`);
+              }
+              
+              // Notificar al servidor sobre el cambio de archivo
+              if (socket && socket.connected && miUsuario) {
+                // El índice se cargará cuando se reciba del servidor
+                // Por ahora solo actualizamos el nombreArchivo en el servidor
+                socket.emit('actualizar-indice-ejercicio', { 
+                  indice: indice || 0,
+                  nombreArchivo: nombreArchivo 
+                });
               }
               
               // Ejecutar el código que estaba en el .then()
@@ -1739,7 +1807,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     function iniciar() {
       
       if (typeof ejercicios == "undefined" || ejercicios.length === 0) {
-        document.getElementById('archivo-ejercicios').click();
+        mostrarModalSeleccionarArchivo();
         return;
       }
       // Priorizar el índice del servidor si existe y corresponde al archivo actual
@@ -1933,7 +2001,40 @@ int main(){
     return 0;
 }`;
 
-const PLANTILLA_VECTOR = `#include <iostream>
+const PLANTILLA_VECTORTECLADO= `#include <iostream>
+#define TF 100
+using namespace std;
+
+void mostrarVector(int [], int);
+void cargarVector(int[], int);
+
+int main(){
+    int v[TF], TL;
+    return 0;
+}
+
+
+
+
+
+
+void cargarVector(int v[], int TL){
+    int minimo = maximo / 10; // ejemplo: si maximo = 100 → minimo = 10
+    
+    for(int i = 0; i < TL; i++){
+        v[i] = minimo + rand() % (maximo - minimo);
+    }
+}
+
+void mostrarVector(int v[], int TL) {
+    cout<<"[ ";
+    for(int i = 0; i < TL; i++) {
+        cout << v[i] << " ";
+    }
+    cout << "]"<<endl;
+}`;
+
+const PLANTILLA_VECTORRANDOM = `#include <iostream>
 #include <ctime>
 #define TF 100
 using namespace std;
@@ -2052,8 +2153,10 @@ void mostrarLista(NodoPtr nodoPadre) {
 
 function obtenerPlantillaActual() {
     switch(tipoPlantilla) {
-        case 'vector':
-            return PLANTILLA_VECTOR;
+        case 'vectorTeclado':
+            return PLANTILLA_VECTORTECLADO;
+        case 'vectorRandom':
+            return PLANTILLA_VECTORRANDOM;
         case 'matriz':
             return PLANTILLA_MATRIZ;
         case 'lista':
@@ -2409,13 +2512,12 @@ function toggleEditor() {
       const editorActivo = obtenerEditorActivo();
       if (!editorActivo) return;
 
-      if (confirm("¿Querés borrar tu código actual y volver a la plantilla inicial?")) {
-        editorActivo.setValue(obtenerPlantillaActual());
-        const inputArea = document.querySelector(`.input-area[data-tab-id="${pestañaActiva}"]`);
-        const outputContent = document.querySelector(`.output[data-tab-id="${pestañaActiva}"] .output-content`);
-        if (inputArea) inputArea.value = "";
-        if (outputContent) outputContent.textContent = "Esperando ejecución...";
-      }
+      // Directamente restaurar la plantilla sin pedir confirmación
+      editorActivo.setValue(obtenerPlantillaActual());
+      const inputArea = document.querySelector(`.input-area[data-tab-id="${pestañaActiva}"]`);
+      const outputContent = document.querySelector(`.output[data-tab-id="${pestañaActiva}"] .output-content`);
+      if (inputArea) inputArea.value = "";
+      if (outputContent) outputContent.textContent = "Esperando ejecución...";
     }
     // URLs para compilación - detectar automáticamente basándose en dónde se carga la página
     let compileServerURL = null; // Se establecerá cuando se encuentre una URL que funcione
@@ -2425,7 +2527,7 @@ function toggleEditor() {
       const urlsToTry = [];
       
       // Detectar automáticamente la URL del servidor basándose en dónde se carga la página
-      const currentOrigin = window.location.origin; // Ej: http://192.168.96.91:3002
+      const currentOrigin = window.location.origin; // Ej: http://192.168.96.91:4002
       const currentHostname = window.location.hostname; // IP o dominio
       const currentPort = window.location.port;
       const protocol = window.location.protocol; // "http:" o "https:"
@@ -2437,36 +2539,36 @@ function toggleEditor() {
         protocol: protocol
       });
       
-      // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página, pero cambiar el puerto a 3000
-      // Si accedes desde http://192.168.96.91:3002, el compilador estará en http://192.168.96.91:3000
+      // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página, pero cambiar el puerto a 4000
+      // Si accedes desde http://192.168.96.91:4002, el compilador estará en http://192.168.96.91:4000
       if (currentHostname) {
         if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-          // Es una IP de red, construir URL con puerto 3000
-          const compileURL = `${protocol}//${currentHostname}:3000/compile`;
+          // Es una IP de red, construir URL con puerto 4000
+          const compileURL = `${protocol}//${currentHostname}:4000/compile`;
           urlsToTry.push(compileURL);
           console.log('🌐 URL de compilador detectada desde red:', compileURL);
         } else {
           // Es localhost
-          const compileURL = 'http://localhost:3000/compile';
+          const compileURL = 'http://localhost:4000/compile';
           urlsToTry.push(compileURL);
           console.log('🏠 Usando localhost para compilador:', compileURL);
         }
       }
       
-      // PRIORIDAD 2: URLs desde config.js (si existe) - cambiar puerto a 3000
+      // PRIORIDAD 2: URLs desde config.js (si existe) - cambiar puerto a 4000
       if (typeof getServerURLs === 'function') {
         try {
           const configUrls = getServerURLs();
           console.log('📋 URLs desde config.js:', configUrls);
           configUrls.forEach(url => {
             if (url && typeof url === 'string') {
-              // Cambiar el puerto a 3000 y agregar /compile
+              // Cambiar el puerto a 4000 y agregar /compile
               let compileURL = url;
-              // Reemplazar cualquier puerto con :3000, o agregar :3000 si no tiene puerto
+              // Reemplazar cualquier puerto con :4000, o agregar :4000 si no tiene puerto
               if (compileURL.includes(':')) {
-                compileURL = compileURL.replace(/:(\d+)(\/|$)/, ':3000$2');
+                compileURL = compileURL.replace(/:(\d+)(\/|$)/, ':4000$2');
               } else {
-                compileURL = compileURL.replace(/(https?:\/\/[^\/]+)(\/|$)/, '$1:3000$2');
+                compileURL = compileURL.replace(/(https?:\/\/[^\/]+)(\/|$)/, '$1:4000$2');
               }
               // Asegurar que termine con /compile
               if (!compileURL.endsWith('/compile')) {
@@ -2485,7 +2587,7 @@ function toggleEditor() {
         try {
           const configUrl = getServerURL();
           if (configUrl && typeof configUrl === 'string') {
-            let compileURL = configUrl.replace(':3002', ':3000');
+            let compileURL = configUrl.replace(':4002', ':4000');
             if (!compileURL.endsWith('/compile')) {
               compileURL = compileURL.replace(/\/$/, '') + '/compile';
             }
@@ -2501,7 +2603,7 @@ function toggleEditor() {
       
       // PRIORIDAD 3: Fallback - localhost si no hay nada más
       if (urlsToTry.length === 0) {
-        urlsToTry.push('http://localhost:3000/compile');
+        urlsToTry.push('http://localhost:4000/compile');
         console.log('⚠️ No se detectaron URLs, usando fallback localhost');
       }
       
@@ -2523,7 +2625,7 @@ function toggleEditor() {
           toggleBtn.title = "Minimizar salida";
         }
         const urlsIntentadas = urls.join('\n- ');
-        outputContent.textContent = `❌ Error: No se pudo conectar a ningún servidor de compilación.\n\nURLs intentadas:\n- ${urlsIntentadas}\n\nVerifica que:\n1. El servidor esté corriendo\n2. El firewall permita conexiones en el puerto 3000\n3. Estés usando la IP correcta del servidor\n4. Ambas computadoras estén en la misma red`;
+        outputContent.textContent = `❌ Error: No se pudo conectar a ningún servidor de compilación.\n\nURLs intentadas:\n- ${urlsIntentadas}\n\nVerifica que:\n1. El servidor esté corriendo\n2. El firewall permita conexiones en el puerto 4000\n3. Estés usando la IP correcta del servidor\n4. Ambas computadoras estén en la misma red`;
         console.error('❌ No se pudo conectar a ningún servidor de compilación después de intentar todas las URLs:', urls);
         return;
       }
@@ -2864,99 +2966,116 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
     
     // Probar el código del usuario contra los casos de prueba
     function probarValidacion() {
-  const codigoUsuario = document.getElementById('codigo-validacion').value.trim();
-  const resultadoArea = document.getElementById('resultado-validacion');
-
-  if (!codigoUsuario) {
-    alert("Por favor, pegá tu código antes de probar.");
-    return;
-  }
-
-  if (indice < 0 || indice >= ejercicios.length) {
-    alert("Ejercicio inválido.");
-    return;
-  }
-
-  const ejercicioActual = ejercicios[indice];
-
-  if (!ejercicioActual.casosDePrueba || ejercicioActual.casosDePrueba.length === 0) {
-    alert("Este ejercicio no tiene casos de prueba definidos.");
-    return;
-  }
-
-  resultadoArea.textContent = "Probando casos de prueba...";
-
-  let errores = [];
-  subirCodigo();
-
-  // Función para normalizar salidas (ignora espacios y saltos de línea)
-  const normalizar = str =>
-    (str || "")
-      .replace(/\s+/g, "") // elimina espacios, tabs y saltos de línea
-      .trim();
-
-  let promesas = ejercicioActual.casosDePrueba.map((caso, i) => {
-    console.log(caso.entrada, i);
-
-    return compilarConReintentos(codigoUsuario, caso.entrada)
-      .then(data => {
-        let salidaObtenida = normalizar(data.output);
-        let salidaEsperada = normalizar(caso.salida);
-
-        console.log("Obtenida:", salidaObtenida);
-        console.log("Esperada:", salidaEsperada);
-
-        if (salidaObtenida !== salidaEsperada) {
+      const codigoUsuario = document.getElementById('codigo-validacion').value.trim();
+      const resultadoArea = document.getElementById('resultado-validacion');
+  
+      if (!codigoUsuario) {
+        alert("Por favor, pegá tu código antes de probar.");
+        return;
+      }
+  
+      if (indice < 0 || indice >= ejercicios.length) {
+        alert("Ejercicio inválido.");
+        return;
+      }
+  
+      const ejercicioActual = ejercicios[indice];
+  
+      if (!ejercicioActual.casosDePrueba || ejercicioActual.casosDePrueba.length === 0) {
+        alert("Este ejercicio no tiene casos de prueba definidos.");
+        return;
+      }
+  
+      resultadoArea.textContent = "Probando casos de prueba...";
+  
+      // Ejecutar cada caso uno por uno
+      let errores = [];
+      subirCodigo();
+      let promesas = ejercicioActual.casosDePrueba.map((caso, i) => {
+        console.log(caso.entrada, i);
+        return compilarConReintentos(codigoUsuario, caso.entrada)
+        .then(data => {
+          let salidaObtenida = data.output || "";
+          let salidaEsperada = caso.salida || "";
+          console.log("Salida obtenida (original):", salidaObtenida);
+          console.log("Salida esperada (original):", salidaEsperada);
+          
+          // Función para normalizar: eliminar TODOS los espacios en blanco (espacios, tabs, saltos de línea, etc.)
+          const normalizar = str => {
+            if (!str) return "";
+            // Eliminar todos los caracteres de espacio en blanco (espacios, tabs, \n, \r, etc.)
+            return str.replace(/\s+/g, "");
+          };
+          
+          salidaObtenida = normalizar(salidaObtenida);
+          salidaEsperada = normalizar(salidaEsperada);
+          
+          console.log("Salida obtenida (normalizada):", salidaObtenida);
+          console.log("Salida esperada (normalizada):", salidaEsperada);
+  
+          if (salidaObtenida !== salidaEsperada) {
+            errores.push({
+              indice: i + 1,
+              entrada: caso.entrada,
+              esperado: salidaEsperada,
+              obtenido: salidaObtenida
+            });
+            console.log("la salida fue distinta");
+          } else console.log("las salidas coinciden");
+        })
+        .catch(err => {
           errores.push({
             indice: i + 1,
             entrada: caso.entrada,
-            esperado: caso.salida,
-            obtenido: data.output
+            esperado: "(error en compilación o ejecución)",
+            obtenido: err.message || err.toString()
           });
-          console.log("la salida fue distinta");
-        } else {
-          console.log("las salidas coinciden");
-        }
-      })
-      .catch(err => {
-        errores.push({
-          indice: i + 1,
-          entrada: caso.entrada,
-          esperado: "(error en compilación o ejecución)",
-          obtenido: err.message || err.toString()
         });
       });
-  });
-
-  Promise.all(promesas).then(() => {
-    if (errores.length === 0) {
-      resultadoArea.textContent =
-        "¡Todos los casos de prueba pasaron correctamente! Avanzando al siguiente ejercicio.";
-
-      cerrarModalValidacion();
-
-      const overlay = document.getElementById("editor-overlay");
-      if (overlay.style.display === "flex") {
-        toggleEditor();
-      }
-
-      indice++;
-      mostrarEjercicio();
-      restaurarPlantilla();
-    } else {
-      let mensaje = "Algunos casos fallaron:\n\n";
-
-      errores.forEach(err => {
-        mensaje +=
-          `<span style="color:orange">Caso ${err.indice} (entrada: "${err.entrada}"):\nEsperado:</span>\n${err.esperado}\n` +
-          `<span style="color:white">Obtenido:</span>\n${err.obtenido}\n\n`;
-      });
-
-      resultadoArea.innerHTML = mensaje;
-    }
-  });
-}
   
+      Promise.all(promesas).then(() => {
+        // VALIDAR PALABRAS CLAVE
+
+        if (errores.length === 0) {
+          // Mostrar mensaje de éxito con SweetAlert2 si está disponible
+          
+              cerrarModalValidacion();
+          if (true){
+            Swal.fire({
+              icon: 'success',
+              title: '¡Éxito!',
+              text: 'Todos los casos de prueba pasaron correctamente.',
+              timer: 2200,
+              showConfirmButton: false
+            }).then(() => {
+              const overlay = document.getElementById("editor-overlay");
+              if (overlay.style.display === "flex") {
+                toggleEditor();
+              }
+              indice++;
+              mostrarEjercicio();
+              restaurarPlantilla();
+            });
+          } else {
+            resultadoArea.textContent = "¡Todos los casos de prueba pasaron correctamente! Avanzando al siguiente ejercicio.";
+            cerrarModalValidacion();
+            const overlay = document.getElementById("editor-overlay");
+            if (overlay.style.display === "flex") {
+              toggleEditor();
+            }
+            indice++;
+            mostrarEjercicio();
+            restaurarPlantilla();
+          }
+        } else {
+          let mensaje = "Algunos casos fallaron:\n\n";
+          errores.forEach(err => {
+            mensaje += `<span style="color:orange">Caso ${err.indice} (entrada: "${err.entrada}"):\nEsperado:</span>\n${err.esperado}\n<span style="color:white">Obtenido:</span>\n${err.obtenido}\n\n`;
+          });
+          resultadoArea.innerHTML = mensaje;
+        }
+      });
+    }
     // Función para copiar el contenido del editor
     // Usar delegación de eventos para que funcione con todos los botones (incluso los creados dinámicamente)
     document.addEventListener("click", (e) => {
@@ -3196,8 +3315,10 @@ document.addEventListener("keydown", function(e) {
     e.preventDefault();
     // Ciclar entre las cuatro plantillas: cpp -> vector -> matriz -> lista -> cpp
     if (tipoPlantilla === 'cpp') {
-      tipoPlantilla = 'vector';
-    } else if (tipoPlantilla === 'vector') {
+      tipoPlantilla = 'vectorTeclado';
+    } else if (tipoPlantilla === 'vectorTeclado') {
+      tipoPlantilla = 'vectorRandom';
+    }  else if (tipoPlantilla === 'vectorRandom') {
       tipoPlantilla = 'matriz';
     } else if (tipoPlantilla === 'matriz') {
       tipoPlantilla = 'lista';
@@ -3407,7 +3528,7 @@ document.addEventListener("keydown", function(e) {
     e.preventDefault();
     // Solo funcionar si el editor está abierto
     const overlay = document.getElementById("editor-overlay");
-    if (overlay && pestañaActiva) {
+    if (overlay && overlay.style.display === "flex" && pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
       if (!editorData) return;
       
@@ -3546,14 +3667,14 @@ document.addEventListener("keydown", function(e) {
     // Función para cargar correos registrados del servidor
     async function cargarCorreosRegistrados() {
       try {
-        // Detectar la URL del servidor (mismo origen o localhost:3002)
+        // Detectar la URL del servidor (mismo origen o localhost:4002)
         const currentOrigin = window.location.origin;
         const currentHostname = window.location.hostname;
         let serverURL = currentOrigin;
         
-        // Si estamos en localhost, usar localhost:3002
+        // Si estamos en localhost, usar localhost:4002
         if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
-          serverURL = 'http://localhost:3002';
+          serverURL = 'http://localhost:4002';
         }
         
         const response = await fetch(`${serverURL}/correos-registrados`);
@@ -3583,9 +3704,9 @@ document.addEventListener("keydown", function(e) {
       
       const valorLower = valorInput.toLowerCase().trim();
       
-      // Filtrar correos que coincidan con lo escrito
+      // Filtrar correos que comiencen con lo escrito
       const correosFiltrados = correosRegistrados.filter(correo => 
-        correo.toLowerCase().includes(valorLower)
+        correo.toLowerCase().startsWith(valorLower)
       );
       
       // Si no hay coincidencias, ocultar el menú
@@ -3766,10 +3887,10 @@ document.addEventListener("keydown", function(e) {
 
       // Detectar automáticamente la URL del servidor basándose en dónde se carga la página
       // window.location.origin ya incluye protocolo, hostname y puerto completo
-      // Ejemplo: si accedes desde http://192.168.96.91:3002, origin será "http://192.168.96.91:3002"
+      // Ejemplo: si accedes desde http://192.168.96.91:4002, origin será "http://192.168.96.91:4002"
       const currentOrigin = window.location.origin;
       const currentHostname = window.location.hostname; // IP o dominio (ej: "192.168.96.91" o "localhost")
-      const currentPort = window.location.port || '3002'; // Puerto desde la URL, o 3002 por defecto
+      const currentPort = window.location.port || '4002'; // Puerto desde la URL, o 4002 por defecto
       
       // Construir URL del servidor usando el mismo hostname y puerto desde donde se carga la página
       const protocol = window.location.protocol; // "http:" o "https:"
@@ -3780,7 +3901,7 @@ document.addEventListener("keydown", function(e) {
       
       // PRIORIDAD 1: Usar la misma URL desde donde se está cargando la página
       // Esto funciona perfectamente cuando accedes desde otra máquina en la red
-      // Si accedes desde http://192.168.96.91:3002, el socket se conectará a esa misma URL
+      // Si accedes desde http://192.168.96.91:4002, el socket se conectará a esa misma URL
       if (currentHostname && currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
         urlsToTry.push(serverURLFromOrigin);
         console.log('🌐 Detectada URL de red desde window.location.origin:', serverURLFromOrigin);
@@ -3788,7 +3909,7 @@ document.addEventListener("keydown", function(e) {
       
       // PRIORIDAD 2: Si estamos en localhost, usar localhost
       if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
-        urlsToTry.push('http://localhost:3002');
+          urlsToTry.push('http://localhost:4002');
         console.log('🏠 Usando localhost para conexión');
       }
       
@@ -3810,7 +3931,7 @@ document.addEventListener("keydown", function(e) {
       
       // PRIORIDAD 4: Fallback - localhost si no hay nada más
       if (urlsToTry.length === 0) {
-        urlsToTry.push('http://localhost:3002');
+          urlsToTry.push('http://localhost:4002');
       }
       
       console.log('🔗 URLs a intentar:', urlsToTry);
@@ -3823,7 +3944,7 @@ document.addEventListener("keydown", function(e) {
       if (index >= urls.length) {
         console.error('❌ No se pudo conectar a ningún servidor después de intentar todas las URLs');
         const urlsIntentadas = urls.join('\n- ');
-        alert(`No se pudo conectar al servidor.\n\nURLs intentadas:\n- ${urlsIntentadas}\n\nAsegúrate de:\n1. Que el servidor esté corriendo\n2. Que el firewall permita conexiones en el puerto 3002\n3. Que estés usando la IP correcta del servidor`);
+        alert(`No se pudo conectar al servidor.\n\nURLs intentadas:\n- ${urlsIntentadas}\n\nAsegúrate de:\n1. Que el servidor esté corriendo\n2. Que el firewall permita conexiones en el puerto 4002\n3. Que estés usando la IP correcta del servidor`);
         socketListenersRegistrados = false;
         return;
       }
@@ -3929,172 +4050,643 @@ document.addEventListener("keydown", function(e) {
     }
 
     // Función para registrar todos los event listeners de socket (solo una vez)
-function registrarSocketListeners(correoUsuario) {
-  if (!socket) return;
+    function registrarSocketListeners(correoUsuario) {
+      if (!socket) return;
 
-  socket.on('usuario-confirmado', (data) => {
-    miUsuario = data.username;
-    miColor = data.color;
-
-    guardarCorreoUsuario(data.username);
-
-    if (data.indiceEjercicio !== undefined) {
-      const indiceGuardado = data.indiceEjercicio;
-      const nombreArchivoDelIndice = data.nombreArchivo;
-
-      const archivoActual =
-        nombreArchivoActual ||
-        (obtenerArchivoSeleccionado()
-          ? obtenerArchivoSeleccionado().nombreArchivo
-          : null);
-
-      if (nombreArchivoDelIndice && nombreArchivoDelIndice === archivoActual) {
-        if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
-          if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
-            indice = indiceGuardado;
-            sessionStorage.setItem("indice", indice);
-            if (document.querySelector('button[onclick="anterior()"]')) {
-              mostrarEjercicio();
+      socket.on('usuario-confirmado', (data) => {
+        miUsuario = data.username;
+        miColor = data.color;
+        
+        // Guardar correo de usuario con expiración de 30 minutos
+        guardarCorreoUsuario(data.username);
+        
+        // Si hay un índice de ejercicio guardado, solo usarlo si corresponde al archivo actual
+        if (data.indiceEjercicio !== undefined) {
+          const indiceGuardado = data.indiceEjercicio;
+          const nombreArchivoDelIndice = data.nombreArchivo;
+          
+          // Verificar que el índice corresponda al archivo actual
+          const archivoActual = nombreArchivoActual || (obtenerArchivoSeleccionado() ? obtenerArchivoSeleccionado().nombreArchivo : null);
+          
+          if (nombreArchivoDelIndice && nombreArchivoDelIndice === archivoActual) {
+            // Los archivos coinciden, podemos usar el índice
+            // Si los ejercicios ya están cargados, actualizar el índice
+            if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+              if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+                indice = indiceGuardado;
+                sessionStorage.setItem("indice", indice);
+                console.log(`📚 Índice de ejercicio cargado desde servidor: ${indice} para archivo: ${nombreArchivoDelIndice}`);
+                // Si ya se iniciaron los ejercicios, mostrar el ejercicio guardado
+                if (document.querySelector('button[onclick="anterior()"]')) {
+                  mostrarEjercicio();
+                }
+              }
+            } else {
+              // Si los ejercicios aún no están cargados, guardar el índice para usarlo después
+              sessionStorage.setItem("indiceServidor", indiceGuardado);
+              sessionStorage.setItem("nombreArchivoIndiceServidor", nombreArchivoDelIndice);
+              console.log(`📚 Índice de ejercicio guardado para cuando se carguen los ejercicios: ${indiceGuardado} para archivo: ${nombreArchivoDelIndice}`);
             }
+          } else if (!nombreArchivoDelIndice || !archivoActual) {
+            // Si no hay nombreArchivo, usar el índice (compatibilidad con formato antiguo)
+            if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+              if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
+                indice = indiceGuardado;
+                sessionStorage.setItem("indice", indice);
+                console.log(`📚 Índice de ejercicio cargado desde servidor (sin verificación de archivo): ${indice}`);
+                if (document.querySelector('button[onclick="anterior()"]')) {
+                  mostrarEjercicio();
+                }
+              }
+            } else {
+              sessionStorage.setItem("indiceServidor", indiceGuardado);
+              console.log(`📚 Índice de ejercicio guardado (sin verificación de archivo): ${indiceGuardado}`);
+            }
+          } else {
+            // Los archivos no coinciden, no usar el índice
+            console.log(`⚠️ El índice recibido es para el archivo "${nombreArchivoDelIndice}" pero el archivo actual es "${archivoActual}". No se usará el índice guardado.`);
+          }
+        }
+        
+        // Verificar si el modal de reconexión está visible (indica que se estaba reconectando)
+        const modalReconexion = document.getElementById('modal-reconexion');
+        const estabaReconectando = modalReconexion && modalReconexion.style.display === 'flex';
+        
+        // Detener intentos automáticos de reconexión
+        if (intervaloReconexion) {
+          clearInterval(intervaloReconexion);
+          intervaloReconexion = null;
+        }
+        
+        // Si estaba reconectando, recargar la página para sincronizar todo el estado
+        if (estabaReconectando) {
+          console.log('✅ Reconexión exitosa. Recargando página...');
+          // Pequeño delay para asegurar que el servidor procese la conexión
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          return; // No continuar con el resto del código, la página se recargará
+        }
+        
+        // Si no estaba reconectando, es la conexión inicial, continuar normalmente
+        // Ocultar modal y mostrar interfaz
+        document.getElementById('modal-usuario').style.display = 'none';
+        document.getElementById('usuarios-conectados').style.display = 'block';
+        
+        // Inicializar event listeners si no se han inicializado aún
+        const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
+        if (minimizarBtn && !minimizarBtn.hasAttribute('data-listener-added')) {
+          minimizarBtn.addEventListener('click', toggleMenuUsuarios);
+          minimizarBtn.setAttribute('data-listener-added', 'true');
+        }
+
+        const toggleCursos = document.getElementById('toggle-cursos-remotos');
+        if (toggleCursos && !toggleCursos.hasAttribute('data-listener-added')) {
+          toggleCursos.addEventListener('click', toggleCursosRemotos);
+          toggleCursos.setAttribute('data-listener-added', 'true');
+        }
+
+        const toggleColaboracion = document.getElementById('toggle-colaboracion');
+        if (toggleColaboracion && !toggleColaboracion.hasAttribute('data-listener-added')) {
+          toggleColaboracion.addEventListener('click', toggleColaboracion);
+          toggleColaboracion.setAttribute('data-listener-added', 'true');
+          // Sincronizar estado inicial
+          if (permitirColaboracion) {
+            toggleColaboracion.classList.add('active');
+          } else {
+            toggleColaboracion.classList.remove('active');
+          }
+        }
+
+        // Inicializar arrastre del menú cuando se muestra
+        inicializarArrastreMenu();
+
+        // Inicializar sistema de pestañas
+        inicializarSistemaPestañas();
+
+        // Cargar documentos disponibles
+        if (data.documentos && data.documentos.length > 0) {
+          data.documentos.forEach(doc => {
+            documentosDisponibles.set(doc.tabId, doc);
+            crearPestañaUI(doc.tabId, doc.nombre, false);
+          });
+          // Actualizar estado visual de las pestañas
+          actualizarEstadoVisualPestañas();
+          // Unirse a la primera pestaña si existe
+          if (data.documentos.length > 0) {
+            cambiarPestaña(data.documentos[0].tabId);
           }
         } else {
-          sessionStorage.setItem("indiceServidor", indiceGuardado);
-          sessionStorage.setItem(
-            "nombreArchivoIndiceServidor",
-            nombreArchivoDelIndice
-          );
+          // Crear primera pestaña si no hay ninguna
+          crearNuevaPestaña();
         }
-      } else if (!nombreArchivoDelIndice || !archivoActual) {
-        if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
-          if (indiceGuardado >= 0 && indiceGuardado < ejercicios.length) {
-            indice = indiceGuardado;
-            sessionStorage.setItem("indice", indice);
-            if (document.querySelector('button[onclick="anterior()"]')) {
-              mostrarEjercicio();
+        
+        // Restaurar estado del editor (abierto/cerrado) después de inicializar todo
+        setTimeout(() => {
+          const editorWasOpen = localStorage.getItem('editorAbierto') === 'true';
+          if (editorWasOpen) {
+            const overlay = document.getElementById("editor-overlay");
+            const editorBtn = document.getElementById("abrir-editor");
+            // Solo abrir si no está ya abierto
+            if (overlay && overlay.style.display !== "flex") {
+              toggleEditor();
             }
           }
-        } else {
-          sessionStorage.setItem("indiceServidor", indiceGuardado);
+        }, 500); // Esperar a que se inicialice todo el sistema de pestañas
+      });
+
+      socket.on('pestaña-creada', (data) => {
+        // Verificar que la pestaña no exista ya para evitar duplicados
+        if (!documentosDisponibles.has(data.tabId)) {
+          documentosDisponibles.set(data.tabId, { nombre: data.nombre, codigo: data.codigo, creadorSocketId: data.creadorSocketId });
+          crearPestañaUI(data.tabId, data.nombre, false);
+          // Actualizar estado visual de las pestañas
+          actualizarEstadoVisualPestañas();
+          // Solo cambiar automáticamente a la nueva pestaña si somos el usuario que la creó
+          if (data.creadorSocketId === socket.id) {
+            setTimeout(() => {
+              cambiarPestaña(data.tabId);
+            }, 100);
+          }
         }
+      });
+
+      socket.on('pestaña-eliminada', (data) => {
+        const { tabId } = data;
+        
+        // Verificar que la pestaña existe antes de intentar eliminarla
+        if (documentosDisponibles.has(tabId)) {
+          // Si es la pestaña activa, cambiar a otra
+          if (pestañaActiva === tabId) {
+            const otrasPestañas = Array.from(editoresPorPestaña.keys()).filter(id => id !== tabId);
+            if (otrasPestañas.length > 0) {
+              cambiarPestaña(otrasPestañas[0]);
+            }
+          }
+
+          // Eliminar del DOM y del Map
+          const panel = document.querySelector(`.editor-panel[data-tab-id="${tabId}"]`);
+          const tab = document.querySelector(`.editor-tab[data-tab-id="${tabId}"]`);
+          
+          if (panel) panel.remove();
+          if (tab) tab.remove();
+
+          const editorData = editoresPorPestaña.get(tabId);
+          if (editorData && editorData.cursosRemotos) {
+            editorData.cursosRemotos.forEach(curso => {
+              if (curso.marker) curso.marker.clear();
+            });
+          }
+
+          editoresPorPestaña.delete(tabId);
+          documentosDisponibles.delete(tabId);
+          
+          // Actualizar estado visual de las pestañas
+          actualizarEstadoVisualPestañas();
+        }
+      });
+
+      socket.on('codigo-actual', (data) => {
+        const { tabId, codigo } = data;
+        const codigoServidor = codigo || '';
+        const editorData = editoresPorPestaña.get(tabId);
+        
+        if (editorData && editorData.editorInstance) {
+          const codigoActual = editorData.editorInstance.getValue();
+          
+          // Si el servidor tiene código, SIEMPRE usarlo (sincronización)
+          if (codigoServidor.trim() !== '' && codigoServidor !== codigoActual) {
+            sincronizando = true;
+            editorData.editorInstance.setValue(codigoServidor);
+            editorData.codigo = codigoServidor;
+          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR || codigoActual === PLANTILLA_MATRIZ || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
+            // Solo establecer plantilla si el servidor está vacío Y el editor también está vacío o tiene plantilla
+            sincronizando = true;
+            editorData.editorInstance.setValue(obtenerPlantillaActual());
+            editorData.codigo = editorData.editorInstance.getValue();
+          }
+          
+          // Después de sincronizar con el servidor, restaurar código guardado si existe
+          // Esto permite que el usuario recupere su código después de reconectarse
+          if (codigoGuardadoAntesDesconexion.has(tabId)) {
+            const codigoGuardado = codigoGuardadoAntesDesconexion.get(tabId);
+            if (codigoGuardado && codigoGuardado.trim() !== '') {
+              // Esperar un momento para que la sincronización se complete
+              setTimeout(() => {
+                if (editorData && editorData.editorInstance && socket && socket.connected) {
+                  sincronizando = true;
+                  editorData.editorInstance.setValue(codigoGuardado);
+                  editorData.codigo = codigoGuardado;
+                  console.log(`✅ Código restaurado para pestaña ${tabId} después de reconexión`);
+                  
+                  // Enviar el código restaurado al servidor para sincronizarlo con otros usuarios
+                  // Solo si se puede editar esta pestaña
+                  if (puedeEditarPestaña(tabId)) {
+                    const lineasCodigoGuardado = codigoGuardado.split('\n');
+                    const ultimaLinea = lineasCodigoGuardado.length - 1;
+                    const ultimoChar = lineasCodigoGuardado[ultimaLinea] ? lineasCodigoGuardado[ultimaLinea].length : 0;
+                    
+                    socket.emit('cambio-codigo', {
+                      cambios: {
+                        codigo: codigoGuardado,
+                        from: { line: 0, ch: 0 },
+                        to: { line: ultimaLinea, ch: ultimoChar },
+                        text: lineasCodigoGuardado
+                      },
+                      usuario: miUsuario,
+                      tabId: tabId
+                    });
+                  }
+                  
+                  // Limpiar el código guardado después de restaurarlo
+                  codigoGuardadoAntesDesconexion.delete(tabId);
+                }
+              }, 500);
+            }
+          }
+          // Si el código ya coincide, no hacer nada
+        } else if (!editorData) {
+          // Si el editor no existe aún, guardar el código para cuando se cree
+          const docExistente = documentosDisponibles.get(tabId) || {};
+          documentosDisponibles.set(tabId, { 
+            ...docExistente, 
+            codigo: codigoServidor,
+            creadorSocketId: docExistente.creadorSocketId
+          });
+        }
+      });
+
+      socket.on('codigo-actualizado', (data) => {
+        // Evitar sincronización circular
+        if (data.socketId === socket.id) return;
+        
+        const { tabId, lineaInsercion, lineasInsertadas } = data;
+        const editorData = editoresPorPestaña.get(tabId);
+        if (!editorData || !editorData.editorInstance) return;
+
+        sincronizando = true;
+        const nuevoCodigo = data.cambios.codigo;
+        const cursor = editorData.editorInstance.getCursor();
+        
+        // Si se insertó una línea nueva y nuestro cursor está por debajo, ajustarlo
+        let nuevoCursor = cursor;
+        if (lineaInsercion !== null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
+          nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
+        }
+        
+        editorData.editorInstance.setValue(nuevoCodigo);
+        editorData.editorInstance.setCursor(nuevoCursor);
+        editorData.codigo = nuevoCodigo;
+        
+        // Refrescar cursos remotos después de actualizar el código SOLO si es la pestaña activa
+        setTimeout(() => {
+          if (mostrarCursosRemotos && tabId === pestañaActiva && editorData.cursosRemotos) {
+            editorData.cursosRemotos.forEach((curso, socketId) => {
+              if (curso.line !== undefined && curso.ch !== undefined) {
+                if (curso.line < editorData.editorInstance.lineCount()) {
+                  const maxCh = editorData.editorInstance.getLine(curso.line).length;
+                  const ch = Math.min(curso.ch, maxCh);
+                  actualizarCursoRemotoEnPestaña(tabId, socketId, curso.username, curso.color, curso.line, ch);
+                } else {
+                  eliminarCursoRemotoEnPestaña(tabId, socketId);
+                }
+              }
+            });
+          }
+        }, 100);
+        
+        mostrarIndicadorSincronizacion();
+      });
+
+      socket.on('usuario-conectado', (data) => {
+        console.log(`${data.username} se conectó`);
+        mostrarIndicadorSincronizacion();
+        // Solicitar actualización de lista de usuarios para obtener información completa
+        // El servidor debería enviar automáticamente usuarios-actualizados, pero por si acaso
+        // esperamos un momento para que se actualice
+        setTimeout(() => {
+          // La lista se actualizará automáticamente cuando llegue usuarios-actualizados
+        }, 100);
+      });
+
+      socket.on('usuario-desconectado', (data) => {
+        console.log('Usuario desconectado');
+        // Eliminar curso remoto del usuario desconectado en todas las pestañas
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData.cursosRemotos) {
+            eliminarCursoRemotoEnPestaña(tabId, data.socketId);
+          }
+        });
+      });
+
+      socket.on('usuario-salio-pestaña', (data) => {
+        // Un usuario salió de una pestaña específica, eliminar su cursor de esa pestaña
+        const { tabId, socketId } = data;
+        const editorData = editoresPorPestaña.get(tabId);
+        if (editorData && editorData.cursosRemotos) {
+          // Eliminar el cursor remoto de esa pestaña
+          eliminarCursoRemotoEnPestaña(tabId, socketId);
+          
+          // También eliminar los datos del cursor de la estructura
+          if (editorData.cursosRemotos.has(socketId)) {
+            editorData.cursosRemotos.delete(socketId);
+          }
+        }
+      });
+
+      socket.on('usuario-unido-pestaña', (data) => {
+        // Cuando un usuario se une a una pestaña, actualizar su información
+        // Esto asegura que los usuarios antiguos tengan la información actualizada de los nuevos
+        const { socketId, usuario, color } = data;
+        const usuarioInfo = usuariosPorSocketId.get(socketId);
+        if (usuarioInfo) {
+          // Actualizar la pestaña activa del usuario
+          usuarioInfo.pestañaActiva = data.tabId;
+        } else {
+          // Si no existe, agregarlo al mapa
+          usuariosPorSocketId.set(socketId, {
+            username: usuario,
+            color: color,
+            pestañaActiva: data.tabId
+          });
+          // Actualizar la lista visual también
+          // La lista se actualizará cuando llegue usuarios-actualizados del servidor
+        }
+      });
+
+      socket.on('cursor-actualizado', (data) => {
+        // Evitar mostrar nuestro propio cursor
+        if (data.socketId === socket.id) return;
+        
+        const { tabId } = data;
+        
+        // Solo procesar si la pestaña existe
+        const editorData = editoresPorPestaña.get(tabId);
+        if (!editorData) return;
+
+        if (!editorData.cursosRemotos) {
+          editorData.cursosRemotos = new Map();
+        }
+
+        // Guardar la posición del cursor siempre (aunque no se muestre)
+        // IMPORTANTE: Asegurarse de que siempre se actualice la posición, incluso si ya existe
+        // Solo guardar si tenemos datos válidos (no null/undefined)
+        if (data.line !== undefined && data.ch !== undefined && data.line !== null && data.ch !== null) {
+          const cursoExistente = editorData.cursosRemotos.get(data.socketId);
+          if (!cursoExistente) {
+            editorData.cursosRemotos.set(data.socketId, {
+              marker: null,
+              username: data.usuario,
+              color: data.color,
+              line: data.line,
+              ch: data.ch
+            });
+          } else {
+            // Actualizar siempre la posición, incluso si el marcador existe
+            cursoExistente.line = data.line;
+            cursoExistente.ch = data.ch;
+            cursoExistente.username = data.usuario;
+            cursoExistente.color = data.color;
+          }
+        }
+        
+        // CRÍTICO: SOLO mostrar el cursor si es la pestaña activa Y el toggle está activado
+        // Si no es la pestaña activa, SIEMPRE limpiar el marcador
+        if (tabId !== pestañaActiva) {
+          // No es la pestaña activa, limpiar el marcador si existe
+          const curso = editorData.cursosRemotos.get(data.socketId);
+          if (curso && curso.marker) {
+            curso.marker.clear();
+            curso.marker = null;
+          }
+          return; // IMPORTANTE: Salir aquí para no mostrar en pestañas no activas
+        }
+        
+        // Solo llegamos aquí si es la pestaña activa
+        if (mostrarCursosRemotos) {
+          actualizarCursoRemotoEnPestaña(tabId, data.socketId, data.usuario, data.color, data.line, data.ch);
+        } else {
+          // Toggle desactivado, limpiar marcador
+          const curso = editorData.cursosRemotos.get(data.socketId);
+          if (curso && curso.marker) {
+            curso.marker.clear();
+            curso.marker = null;
+          }
+        }
+      });
+
+      socket.on('documentos-actualizados', (documentos) => {
+        // Actualizar lista de documentos disponibles
+        documentos.forEach(doc => {
+          // Verificar si la pestaña ya existe en el DOM para evitar duplicados
+          const tabExisteEnDOM = document.querySelector(`.editor-tab[data-tab-id="${doc.tabId}"]`);
+          
+          if (!documentosDisponibles.has(doc.tabId) && !tabExisteEnDOM) {
+            documentosDisponibles.set(doc.tabId, doc);
+            crearPestañaUI(doc.tabId, doc.nombre, false);
+          } else {
+            // Actualizar información del documento (por si cambió el creador)
+            const docExistente = documentosDisponibles.get(doc.tabId);
+            if (docExistente) {
+              docExistente.creadorSocketId = doc.creadorSocketId;
+              docExistente.nombre = doc.nombre;
+              docExistente.codigo = doc.codigo;
+            }
+          }
+        });
+        
+        // Eliminar pestañas que ya no existen en el servidor
+        const tabIdsServidor = new Set(documentos.map(doc => doc.tabId));
+        documentosDisponibles.forEach((doc, tabId) => {
+          if (!tabIdsServidor.has(tabId)) {
+            // Esta pestaña ya no existe en el servidor, eliminarla localmente
+            const panel = document.querySelector(`.editor-panel[data-tab-id="${tabId}"]`);
+            const tab = document.querySelector(`.editor-tab[data-tab-id="${tabId}"]`);
+            
+            if (panel) panel.remove();
+            if (tab) tab.remove();
+            
+            const editorData = editoresPorPestaña.get(tabId);
+            if (editorData && editorData.cursosRemotos) {
+              editorData.cursosRemotos.forEach(curso => {
+                if (curso.marker) curso.marker.clear();
+              });
+            }
+            
+            editoresPorPestaña.delete(tabId);
+            documentosDisponibles.delete(tabId);
+          }
+        });
+        
+        // Actualizar estado visual de las pestañas
+        actualizarEstadoVisualPestañas();
+      });
+
+      socket.on('usuarios-actualizados', (usuarios) => {
+        actualizarListaUsuarios(usuarios);
+      });
+
+      socket.on('colaboracion-desactivada-global', () => {
+        // Recibir notificación de que otro usuario desactivó la colaboración
+        // Desactivar localmente (solo si está activa, para evitar bucles)
+        if (permitirColaboracion) {
+          permitirColaboracion = false;
+          const toggle = document.getElementById('toggle-colaboracion');
+          if (toggle) {
+            toggle.classList.remove('active');
+          }
+          // Actualizar estado de solo lectura de todos los editores
+          actualizarEstadoSoloLecturaTodos();
+          
+          // Actualizar estado visual de las pestañas
+          actualizarEstadoVisualPestañas();
+          
+          // Mover al usuario a una hoja propia si está en una que no le pertenece
+          moverAhojaPropia();
+        }
+      });
+
+      socket.on('contraseña-verificada', (data) => {
+        const toggle = document.getElementById('toggle-colaboracion');
+        
+        if (data.valida) {
+          // Contraseña correcta - activar colaboración
+          permitirColaboracion = true;
+          if (toggle) {
+            toggle.classList.add('active');
+          }
+          // Actualizar estado de solo lectura de todos los editores
+          actualizarEstadoSoloLecturaTodos();
+          
+          // Actualizar estado visual de las pestañas (habilitar todas)
+          actualizarEstadoVisualPestañas();
+        } else {
+          // Contraseña incorrecta
+          alert('Contraseña incorrecta. La colaboración no se activó.');
+        }
+      });
+
+      socket.on('invitacion-posicion', (data) => {
+        // Recibir invitación de otro usuario para ir a su posición
+        const { tabId, line, ch, usuario, color, socketId } = data;
+        
+        // Verificar si el editor está cerrado y abrirlo si es necesario
+        const overlay = document.getElementById("editor-overlay");
+        const editorCerrado = !overlay || overlay.style.display !== "flex";
+        
+        if (editorCerrado) {
+          // Abrir el editor primero
+          toggleEditor();
+          // Esperar a que el editor se abra antes de continuar
+          setTimeout(() => {
+            navegarAPosicionInvitada(tabId, line, ch, usuario, color);
+          }, 200);
+          return;
+        }
+        
+        // Si el editor ya está abierto, proceder directamente
+        navegarAPosicionInvitada(tabId, line, ch, usuario, color);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Desconectado del servidor');
+        if (vaciarEditoresPorDesconexion) {
+          vaciarEditoresPorDesconexion();
+        }
+      });
+      
+      // Función para vaciar editores cuando se pierde conexión (asignar a variable global)
+      vaciarEditoresPorDesconexion = function() {
+        // Limpiar ejercicios primero
+        limpiarEjercicios();
+        
+        mostrarIndicadorSincronizacion();
+        
+        // Mostrar modal de espera de reconexión
+        const modalReconexion = document.getElementById('modal-reconexion');
+        if (modalReconexion) {
+          modalReconexion.style.display = 'flex';
+        }
+        
+        // Detener cualquier intervalo de reconexión anterior
+        if (intervaloReconexion) {
+          clearInterval(intervaloReconexion);
+          intervaloReconexion = null;
+        }
+        
+        // Iniciar intentos automáticos de reconexión cada 3 segundos
+        if (miUsuario) {
+          intervaloReconexion = setInterval(() => {
+            // Solo intentar reconectar si el socket no está conectado y el modal está visible
+            const modal = document.getElementById('modal-reconexion');
+            if (modal && modal.style.display === 'flex' && (!socket || !socket.connected)) {
+              console.log('🔄 Intentando reconectar automáticamente...');
+              // Obtener el correo de usuario guardado o usar el actual
+              const correoUsuario = obtenerCorreoUsuario() || miUsuario;
+              if (correoUsuario) {
+                // Simular el input para poder usar conectarUsuario
+                const inputUsuario = document.getElementById('input-usuario');
+                if (inputUsuario) {
+                  inputUsuario.value = correoUsuario;
+                }
+                // Reconectar
+                conectarUsuario();
+              }
+            } else if (socket && socket.connected) {
+              // Si ya está conectado, detener los intentos
+              clearInterval(intervaloReconexion);
+              intervaloReconexion = null;
+            }
+          }, 3000); // Intentar cada 3 segundos
+        }
+        
+        // Guardar código de todas las pestañas antes de vaciar
+        codigoGuardadoAntesDesconexion.clear();
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData && editorData.editorInstance) {
+            const codigoActual = editorData.editorInstance.getValue();
+            // Solo guardar si no es la plantilla vacía
+            if (codigoActual && 
+                codigoActual.trim() !== '' && 
+                codigoActual !== PLANTILLA_CPP && 
+                codigoActual !== PLANTILLA_VECTOR &&
+                codigoActual !== PLANTILLA_MATRIZ &&
+                codigoActual !== PLANTILLA_LISTA_ENLAZADA) {
+              codigoGuardadoAntesDesconexion.set(tabId, codigoActual);
+              console.log(`💾 Código guardado para pestaña ${tabId} antes de desconexión`);
+            }
+          }
+        });
+        
+        // Vaciar todos los editores (solo para este usuario)
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData && editorData.editorInstance) {
+            // Vaciar el editor
+            sincronizando = true; // Evitar que se sincronice con el servidor
+            editorData.editorInstance.setValue(obtenerPlantillaActual());
+            editorData.codigo = editorData.editorInstance.getValue();
+            // Limpiar historial de undo/redo para que no pueda restaurar con Ctrl+Z
+            editorData.editorInstance.clearHistory();
+            sincronizando = false;
+            console.log(`🗑️ Editor de pestaña ${tabId} vaciado por desconexión (historial limpiado)`);
+          }
+        });
+        
+        // Resetear flag para permitir reconexión
+        socketListenersRegistrados = false;
+        // Limpiar todos los cursos remotos al desconectarse
+        editoresPorPestaña.forEach((editorData, tabId) => {
+          if (editorData.cursosRemotos) {
+            editorData.cursosRemotos.forEach((curso, socketId) => {
+              if (curso.marker) {
+                curso.marker.clear();
+              }
+            });
+            editorData.cursosRemotos.clear();
+          }
+        });
       }
     }
-
-    const modalReconexion = document.getElementById('modal-reconexion');
-    const estabaReconectando =
-      modalReconexion && modalReconexion.style.display === 'flex';
-
-    if (intervaloReconexion) {
-      clearInterval(intervaloReconexion);
-      intervaloReconexion = null;
-    }
-
-    if (estabaReconectando) {
-      setTimeout(() => window.location.reload(), 500);
-      return;
-    }
-
-    document.getElementById('modal-usuario').style.display = 'none';
-    document.getElementById('usuarios-conectados').style.display = 'block';
-
-    inicializarArrastreMenu();
-    inicializarSistemaPestañas();
-
-    if (data.documentos && data.documentos.length > 0) {
-      data.documentos.forEach(doc => {
-        documentosDisponibles.set(doc.tabId, doc);
-        crearPestañaUI(doc.tabId, doc.nombre, false);
-      });
-      actualizarEstadoVisualPestañas();
-      cambiarPestaña(data.documentos[0].tabId);
-    } else {
-      crearNuevaPestaña();
-    }
-  });
-
-  socket.on('pestaña-creada', (data) => {
-    documentosDisponibles.set(data.tabId, data);
-    crearPestañaUI(data.tabId, data.nombre, false);
-    actualizarEstadoVisualPestañas();
-    if (data.creadorSocketId === socket.id) {
-      setTimeout(() => cambiarPestaña(data.tabId), 100);
-    }
-  });
-
-  socket.on('codigo-actual', (data) => {
-    const editorData = editoresPorPestaña.get(data.tabId);
-    if (!editorData || !editorData.editorInstance) return;
-
-    sincronizando = true;
-    editorData.editorInstance.setValue(data.codigo || obtenerPlantillaActual());
-    editorData.codigo = editorData.editorInstance.getValue();
-  });
-
-  socket.on('codigo-actualizado', (data) => {
-    if (data.socketId === socket.id) return;
-    const editorData = editoresPorPestaña.get(data.tabId);
-    if (!editorData || !editorData.editorInstance) return;
-
-    sincronizando = true;
-    editorData.editorInstance.setValue(data.cambios.codigo);
-    editorData.codigo = data.cambios.codigo;
-  });
-
-  socket.on('usuarios-actualizados', (usuarios) => {
-    actualizarListaUsuarios(usuarios);
-  });
-
-  socket.on('invitacion-posicion', (data) => {
-    const overlay = document.getElementById("editor-overlay");
-    const editorCerrado = !overlay || overlay.style.display !== "flex";
-
-    if (editorCerrado) {
-      toggleEditor();
-      setTimeout(() => {
-        navegarAPosicionInvitada(
-          data.tabId,
-          data.line,
-          data.ch,
-          data.usuario,
-          data.color
-        );
-      }, 200);
-      return;
-    }
-
-    navegarAPosicionInvitada(
-      data.tabId,
-      data.line,
-      data.ch,
-      data.usuario,
-      data.color
-    );
-  });
-
-  // =====================================================
-  // 🔗 ABRIR LINK EN EL USUARIO DESTINO (FIX DEFINITIVO)
-  // =====================================================
-  socket.on('abrir-link', ({ url }) => {
-  console.log('🔗 Abriendo link en nueva pestaña:', url);
-
-  if (!url) return;
-
-  const nuevaVentana = window.open(url, '_blank');
-
-  // Fallback MUY raro, pero seguro
-  if (!nuevaVentana) {
-    console.warn('⚠️ El navegador bloqueó window.open');
-  }
-});
-
-
-  socket.on('disconnect', () => {
-    console.log('Desconectado del servidor');
-    if (vaciarEditoresPorDesconexion) {
-      vaciarEditoresPorDesconexion();
-    }
-  });
-}
-
 
     // ========== FUNCIONES SISTEMA DE PESTAÑAS ==========
     
@@ -4138,33 +4730,6 @@ function registrarSocketListeners(correoUsuario) {
       }
     }
 
-    function pedirLinkOBusqueda() {
-  const input = prompt(
-    '🌐 Pegá un link o escribí una búsqueda:\n\n' +
-    '• Texto → Google Imágenes\n' +
-    '• Link → se abre directo'
-  );
-
-  if (!input || !input.trim()) return null;
-
-  const valor = input.trim();
-
-  // Link completo
-  if (valor.startsWith('http://') || valor.startsWith('https://')) {
-    return valor;
-  }
-
-  // Dominio sin protocolo (ej: google.com)
-  if (valor.includes('.') && !valor.includes(' ')) {
-    return 'https://' + valor;
-  }
-
-  // Texto normal → búsqueda en Google Imágenes
-  const busquedaCodificada = encodeURIComponent(valor);
-  return `https://www.google.com/search?tbm=isch&q=${busquedaCodificada}`;
-}
-
-
     function crearNuevaPestaña() {
       if (!socket || !socket.connected) {
         alert('Debes estar conectado para crear una pestaña');
@@ -4176,6 +4741,13 @@ function registrarSocketListeners(correoUsuario) {
     }
 
     function crearPestañaUI(tabId, nombre, esActiva) {
+      // Verificar si la pestaña ya existe para evitar duplicados
+      const tabExistente = document.querySelector(`.editor-tab[data-tab-id="${tabId}"]`);
+      if (tabExistente) {
+        console.log(`Pestaña ${tabId} ya existe, no se creará duplicado`);
+        return;
+      }
+      
       // Crear botón de pestaña
       const tabsContainer = document.getElementById('editor-tabs');
       const nuevaPestañaBtn = document.getElementById('nueva-pestaña-btn');
@@ -4802,6 +5374,11 @@ function registrarSocketListeners(correoUsuario) {
         return;
       }
 
+      // Notificar al servidor que se está eliminando la pestaña
+      if (socket && socket.connected) {
+        socket.emit('eliminar-pestaña', { tabId });
+      }
+
       // Si es la pestaña activa, cambiar a otra
       if (pestañaActiva === tabId) {
         const otrasPestañas = Array.from(editoresPorPestaña.keys()).filter(id => id !== tabId);
@@ -4914,86 +5491,56 @@ function registrarSocketListeners(correoUsuario) {
       const partes = correo.split('@');
       return partes[0] || correo;
     }
- function actualizarListaUsuarios(usuarios) {
-  const lista = document.getElementById('lista-usuarios');
-  lista.innerHTML = '';
-  
-  usuariosPorSocketId.clear();
-  usuarios.forEach(usuario => {
-    usuariosPorSocketId.set(usuario.socketId, {
-      username: usuario.username,
-      color: usuario.color,
-      pestañaActiva: usuario.pestañaActiva
-    });
-  });
-  
-  usuarios.forEach(usuario => {
-    if (usuario.socketId === socket.id) return;
-
-    const nombreUsuario = obtenerNombreUsuario(usuario.username);
     
-    const item = document.createElement('div');
-    item.className = 'usuario-item';
-    item.style.cursor = 'pointer';
-    
-    item.innerHTML = `
-      <span class="usuario-color" style="background-color: ${usuario.color}"></span>
-      <span class="usuario-nombre">${nombreUsuario}</span>
-      <span class="invitar-simbolo"
-            title="Invitar a ${usuario.username} a mi posición"
-            style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">
-        📍
-      </span>
-    `;
-
-    const nombreSpan = item.querySelector('.usuario-nombre');
-
-    // ==================================================
-    // CLICK vs DOBLE CLICK (manejo correcto)
-    // ==================================================
-    let clickTimeout = null;
-
-    nombreSpan.addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      clickTimeout = setTimeout(() => {
-        navegarAUsuario(usuario.socketId);
-      }, 250); // espera para ver si hay doble click
-    });
-
-    nombreSpan.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-
-      // Cancelar el click simple
-      if (clickTimeout) {
-        clearTimeout(clickTimeout);
-        clickTimeout = null;
-      }
-
-      const url = pedirLinkOBusqueda();
-      if (!url) return;
-
-      socket.emit('abrir-link-usuario', {
-        socketIdDestino: usuario.socketId,
-        url
+    function actualizarListaUsuarios(usuarios) {
+      const lista = document.getElementById('lista-usuarios');
+      lista.innerHTML = '';
+      
+      // Actualizar mapa de usuarios por socketId
+      usuariosPorSocketId.clear();
+      usuarios.forEach(usuario => {
+        usuariosPorSocketId.set(usuario.socketId, {
+          username: usuario.username,
+          color: usuario.color,
+          pestañaActiva: usuario.pestañaActiva,
+          nombreArchivo: usuario.nombreArchivo || null,
+          indiceEjercicio: usuario.indiceEjercicio || 0
+        });
       });
-    });
-
-    // ==================================================
-    // 📍 CLICK EN EL ÍCONO → TRAERLO A MI POSICIÓN
-    // ==================================================
-    const simbolo = item.querySelector('.invitar-simbolo');
-    simbolo.addEventListener('click', (e) => {
-      e.stopPropagation();
-      invitarAMiPosicion(usuario.socketId);
-    });
-
-    lista.appendChild(item);
-  });
-}
-
-
-
+      
+      usuarios.forEach(usuario => {
+        // No mostrar nuestro propio usuario
+        if (usuario.socketId === socket.id) return;
+        
+        const nombreUsuario = obtenerNombreUsuario(usuario.username);
+        
+        const item = document.createElement('div');
+        item.className = 'usuario-item';
+        item.style.cursor = 'pointer';
+        item.title = usuario.pestañaActiva ? `Ir a ${usuario.username} (${documentosDisponibles.get(usuario.pestañaActiva)?.nombre || 'Pestaña'})` : `Usuario: ${usuario.username}`;
+        item.innerHTML = `
+          <span class="usuario-color" style="background-color: ${usuario.color}"></span>
+          <span class="usuario-nombre">${nombreUsuario}</span>
+          <span class="invitar-simbolo" title="Invitar a ${usuario.username} a mi posición" style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">📍</span>
+        `;
+        
+        // Agregar evento de clic para navegar a la posición del usuario (en el nombre)
+        const nombreSpan = item.querySelector('.usuario-nombre');
+        nombreSpan.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navegarAUsuario(usuario.socketId);
+        });
+        
+        // Agregar evento de clic en el símbolo para invitar al usuario a mi posición
+        const simbolo = item.querySelector('.invitar-simbolo');
+        simbolo.addEventListener('click', (e) => {
+          e.stopPropagation();
+          invitarAMiPosicion(usuario.socketId);
+        });
+        
+        lista.appendChild(item);
+      });
+    }
     
     function invitarAMiPosicion(socketIdDestino) {
       if (!permitirColaboracion) {
@@ -5067,6 +5614,58 @@ function registrarSocketListeners(correoUsuario) {
         return;
       }
       
+      // Si el usuario tiene un archivo JS diferente, cargarlo primero
+      if (usuarioInfo.nombreArchivo && usuarioInfo.nombreArchivo !== nombreArchivoActual) {
+        console.log(`📂 Cargando archivo del usuario: ${usuarioInfo.nombreArchivo}`);
+        
+        // Obtener la URL del servidor de archivos
+        const urlsArchivos = obtenerURLsServidorArchivos();
+        const serverURL = urlsArchivos[0] || 'http://localhost:4001';
+        
+        // Cargar el archivo del usuario
+        cargarArchivoSeleccionado(usuarioInfo.nombreArchivo, serverURL)
+          .then(() => {
+            // Después de cargar el archivo, esperar un momento y luego cargar el índice
+            setTimeout(() => {
+              if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+                const indiceUsuario = usuarioInfo.indiceEjercicio || 0;
+                if (indiceUsuario >= 0 && indiceUsuario < ejercicios.length) {
+                  indice = indiceUsuario;
+                  sessionStorage.setItem("indice", indice);
+                  mostrarEjercicio();
+                  console.log(`📚 Índice del usuario cargado: ${indice}`);
+                }
+              }
+              
+              // Ahora navegar a la posición del cursor
+              navegarAPosicionUsuario(socketId, usuarioInfo);
+            }, 500);
+          })
+          .catch(error => {
+            console.error('Error al cargar archivo del usuario:', error);
+            // Aún así, intentar navegar a la posición
+            navegarAPosicionUsuario(socketId, usuarioInfo);
+          });
+      } else {
+        // Si el archivo es el mismo o no hay archivo, solo cargar el índice si es diferente
+        if (usuarioInfo.indiceEjercicio !== undefined && usuarioInfo.indiceEjercicio !== indice) {
+          if (typeof ejercicios !== 'undefined' && ejercicios.length > 0) {
+            const indiceUsuario = usuarioInfo.indiceEjercicio || 0;
+            if (indiceUsuario >= 0 && indiceUsuario < ejercicios.length) {
+              indice = indiceUsuario;
+              sessionStorage.setItem("indice", indice);
+              mostrarEjercicio();
+              console.log(`📚 Índice del usuario cargado: ${indice}`);
+            }
+          }
+        }
+        
+        // Navegar a la posición del cursor
+        navegarAPosicionUsuario(socketId, usuarioInfo);
+      }
+    }
+    
+    function navegarAPosicionUsuario(socketId, usuarioInfo) {
       const tabId = usuarioInfo.pestañaActiva;
       
       // Si la pestaña no es la activa, cambiar a ella primero
@@ -6020,10 +6619,14 @@ function registrarSocketListeners(correoUsuario) {
   // ============================================
   // PORTAPAPELES INTERNO - Control de copiar/pegar
   // ============================================
+  // Sistema de portapapeles dual:
+  // - Ctrl+C, Ctrl+V, Ctrl+X: Usan portapapeles interno (NO se guarda en el sistema operativo)
+  // - Ctrl+Shift+C, Ctrl+Shift+V, Ctrl+Shift+X: Usan portapapeles del sistema operativo (SÍ se guarda en la computadora)
+  // 
   // Almacena el contenido copiado internamente (no se guarda en el portapapeles del sistema)
   let portapapelesInterno = '';
   
-  // Variable para rastrear si se usó Ctrl+Alt (para permitir copiar/pegar normal)
+  // Variables para rastrear cuando se usa Ctrl+Shift (para permitir copiar/pegar del sistema)
   // Usamos un timestamp para mayor precisión y una variable para la acción
   let usarPortapapelesSistema = false;
   let timestampPortapapelesSistema = 0;
@@ -6144,9 +6747,12 @@ function registrarSocketListeners(correoUsuario) {
     
     if (usarPortapapelesSistema && accionPortapapelesSistema === 'copy' && tiempoTranscurrido < 500) {
       console.log('Permitiendo copiado normal del sistema (Ctrl+Shift+C) - NO interceptando');
-      usarPortapapelesSistema = false; // Resetear la bandera
-      accionPortapapelesSistema = '';
-      timestampPortapapelesSistema = 0;
+      // Resetear la bandera después de un breve delay para asegurar que el evento se procese
+      setTimeout(() => {
+        usarPortapapelesSistema = false;
+        accionPortapapelesSistema = '';
+        timestampPortapapelesSistema = 0;
+      }, 100);
       // NO hacer nada más, dejar que el evento continúe normalmente
       return;
     }
@@ -6173,7 +6779,7 @@ function registrarSocketListeners(correoUsuario) {
         e.clipboardData.setData('text/plain', '');
       }
       
-      console.log('Texto copiado al portapapeles interno (no se guardó en el sistema)');
+      console.log('Texto copiado al portapapeles interno (NO se guardó en el sistema)');
     }
   }, true); // Usar capture phase para interceptar antes
 
@@ -6185,9 +6791,12 @@ function registrarSocketListeners(correoUsuario) {
     
     if (usarPortapapelesSistema && accionPortapapelesSistema === 'cut' && tiempoTranscurrido < 500) {
       console.log('Permitiendo cortado normal del sistema (Ctrl+Shift+X) - NO interceptando');
-      usarPortapapelesSistema = false; // Resetear la bandera
-      accionPortapapelesSistema = '';
-      timestampPortapapelesSistema = 0;
+      // Resetear la bandera después de un breve delay para asegurar que el evento se procese
+      setTimeout(() => {
+        usarPortapapelesSistema = false;
+        accionPortapapelesSistema = '';
+        timestampPortapapelesSistema = 0;
+      }, 100);
       // NO hacer nada más, dejar que el evento continúe normalmente
       return;
     }
@@ -6225,7 +6834,7 @@ function registrarSocketListeners(correoUsuario) {
         e.clipboardData.setData('text/plain', '');
       }
       
-      console.log('Texto cortado y guardado en el portapapeles interno');
+      console.log('Texto cortado y guardado en el portapapeles interno (NO se guardó en el sistema)');
     }
   }, true);
 
@@ -6237,9 +6846,12 @@ function registrarSocketListeners(correoUsuario) {
     
     if (usarPortapapelesSistema && accionPortapapelesSistema === 'paste' && tiempoTranscurrido < 500) {
       console.log('Permitiendo pegado normal del sistema (Ctrl+Shift+V) - NO interceptando');
-      usarPortapapelesSistema = false; // Resetear la bandera
-      accionPortapapelesSistema = '';
-      timestampPortapapelesSistema = 0;
+      // Resetear la bandera después de un breve delay para asegurar que el evento se procese
+      setTimeout(() => {
+        usarPortapapelesSistema = false;
+        accionPortapapelesSistema = '';
+        timestampPortapapelesSistema = 0;
+      }, 100);
       // NO hacer nada más, dejar que el evento continúe normalmente
       return;
     }
@@ -6260,7 +6872,7 @@ function registrarSocketListeners(correoUsuario) {
     // Solo usar el portapapeles interno
     if (portapapelesInterno) {
       insertarTexto(elemento, portapapelesInterno);
-      console.log('Texto pegado desde el portapapeles interno');
+      console.log('Texto pegado desde el portapapeles interno (NO se usó el portapapeles del sistema)');
     } else {
       console.log('El portapapeles interno está vacío - no se puede pegar');
     }
@@ -6277,6 +6889,7 @@ function registrarSocketListeners(correoUsuario) {
       // Prevenir el comportamiento por defecto del navegador (abrir inspector)
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
       
       const elemento = obtenerElementoActivo();
       if (elemento) {
@@ -6284,18 +6897,39 @@ function registrarSocketListeners(correoUsuario) {
         if (textoSeleccionado) {
           console.log('Ctrl+Shift+C detectado - copiando al portapapeles del sistema');
           
+          // Marcar que usaremos el portapapeles del sistema para evitar interceptación
+          usarPortapapelesSistema = true;
+          accionPortapapelesSistema = 'copy';
+          timestampPortapapelesSistema = Date.now();
+          
           // Usar la API del portapapeles para copiar directamente
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textoSeleccionado).then(() => {
               console.log('Texto copiado al portapapeles del sistema exitosamente');
+              // Resetear la bandera después de un breve delay
+              setTimeout(() => {
+                usarPortapapelesSistema = false;
+                accionPortapapelesSistema = '';
+                timestampPortapapelesSistema = 0;
+              }, 100);
             }).catch((err) => {
               console.error('Error al copiar al portapapeles:', err);
               // Fallback: usar execCommand
               copiarConExecCommand(textoSeleccionado);
+              setTimeout(() => {
+                usarPortapapelesSistema = false;
+                accionPortapapelesSistema = '';
+                timestampPortapapelesSistema = 0;
+              }, 100);
             });
           } else {
             // Fallback para navegadores que no soportan Clipboard API
             copiarConExecCommand(textoSeleccionado);
+            setTimeout(() => {
+              usarPortapapelesSistema = false;
+              accionPortapapelesSistema = '';
+              timestampPortapapelesSistema = 0;
+            }, 100);
           }
         } else {
           console.log('No hay texto seleccionado para copiar');
@@ -6306,21 +6940,51 @@ function registrarSocketListeners(correoUsuario) {
     
     // Ctrl+Shift+V o Cmd+Shift+V - Usar portapapeles del sistema
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'v' && !e.altKey) {
+      // Marcar que usaremos el portapapeles del sistema
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'paste';
       timestampPortapapelesSistema = Date.now();
-      // No prevenir el evento, dejar que se pegue normalmente
+      // No prevenir el evento, dejar que se pegue normalmente del sistema
       console.log('Ctrl+Shift+V detectado en keydown - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
+      // No hacer return aquí, dejar que el evento continúe normalmente
       return;
     }
     
     // Ctrl+Shift+X o Cmd+Shift+X - Usar portapapeles del sistema
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && tecla === 'x' && !e.altKey) {
+      const elemento = obtenerElementoActivo();
+      if (elemento) {
+        const textoSeleccionado = obtenerTextoSeleccionado(elemento);
+        if (textoSeleccionado) {
+          // Primero copiar al portapapeles del sistema
+          console.log('Ctrl+Shift+X detectado - copiando al portapapeles del sistema y cortando');
+          
+          // Marcar que usaremos el portapapeles del sistema
+          usarPortapapelesSistema = true;
+          accionPortapapelesSistema = 'cut';
+          timestampPortapapelesSistema = Date.now();
+          
+          // Copiar al portapapeles del sistema antes de cortar
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textoSeleccionado).then(() => {
+              console.log('Texto copiado al portapapeles del sistema antes de cortar');
+            }).catch((err) => {
+              console.error('Error al copiar al portapapeles:', err);
+              copiarConExecCommand(textoSeleccionado);
+            });
+          } else {
+            copiarConExecCommand(textoSeleccionado);
+          }
+          
+          // No prevenir el evento, dejar que se corte normalmente del sistema
+          console.log('Permitiendo cortado normal del sistema');
+          return;
+        }
+      }
+      // Si no hay texto seleccionado, permitir el comportamiento normal
       usarPortapapelesSistema = true;
       accionPortapapelesSistema = 'cut';
       timestampPortapapelesSistema = Date.now();
-      // No prevenir el evento, dejar que se corte normalmente
-      console.log('Ctrl+Shift+X detectado - usando portapapeles del sistema. Timestamp:', timestampPortapapelesSistema);
       return;
     }
     
@@ -6334,9 +6998,11 @@ function registrarSocketListeners(correoUsuario) {
           portapapelesInterno = textoSeleccionado;
           e.preventDefault();
           e.stopPropagation();
-          console.log('Ctrl+C interceptado - texto guardado en portapapeles interno');
+          e.stopImmediatePropagation();
+          console.log('Ctrl+C interceptado - texto guardado en portapapeles interno (NO se guardó en el sistema)');
         }
       }
+      return;
     }
     
     // Ctrl+X o Cmd+X (sin Shift) - Usar portapapeles interno
@@ -6360,9 +7026,11 @@ function registrarSocketListeners(correoUsuario) {
           }
           e.preventDefault();
           e.stopPropagation();
-          console.log('Ctrl+X interceptado - texto cortado y guardado en portapapeles interno');
+          e.stopImmediatePropagation();
+          console.log('Ctrl+X interceptado - texto cortado y guardado en portapapeles interno (NO se guardó en el sistema)');
         }
       }
+      return;
     }
     
     // Ctrl+V o Cmd+V (sin Shift) - Usar portapapeles interno
@@ -6373,13 +7041,18 @@ function registrarSocketListeners(correoUsuario) {
         if (portapapelesInterno) {
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation();
           insertarTexto(elemento, portapapelesInterno);
-          console.log('Ctrl+V interceptado - texto pegado desde portapapeles interno');
+          console.log('Ctrl+V interceptado - texto pegado desde portapapeles interno (NO se usó el portapapeles del sistema)');
         } else {
-          // Si no hay portapapeles interno, permitir el pegado normal del sistema
-          // No prevenir el evento
+          // Si no hay portapapeles interno, prevenir el pegado normal para evitar usar el del sistema
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          console.log('Ctrl+V interceptado - portapapeles interno vacío, no se puede pegar');
         }
       }
+      return;
     }
   }, true);
 
