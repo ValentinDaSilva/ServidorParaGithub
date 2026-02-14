@@ -156,6 +156,67 @@
 
     #pista, #solucion { margin-top: 1rem; }
 
+    /* Contenedor de ejemplos (casos de prueba) */
+    .ejemplos-contenedor { margin-top: 0.5rem; }
+    .ejemplo-caso {
+      background: #f0f4f8;
+      border: 1px solid #d0dce8;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .ejemplo-caso:last-child { margin-bottom: 0; }
+    .ejemplo-caso h4 {
+      margin: 0 0 0.75rem 0;
+      font-size: 1rem;
+      color: #007bff;
+      font-weight: 700;
+    }
+    .ejemplo-entrada-salida { margin-bottom: 0.75rem; }
+    .ejemplo-entrada-salida:last-child { margin-bottom: 0; }
+    .ejemplo-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .ejemplo-pre-wrap {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .ejemplo-pre-wrap pre {
+      flex: 1;
+      margin: 0;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+    .btn-copiar-ejemplo {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      font-size: 1rem;
+    }
+    .btn-copiar-ejemplo:hover { background: #0056b3; }
+    .btn-copiar-ejemplo.copiado { background: #28a745; }
+    .ejemplos-sin-casos { color: #666; font-style: italic; padding: 0.5rem 0; }
+
     /* Contenedor botones derecha (Editor + Pizarra) para que no se peguen */
     #botones-derecha {
       position: fixed;
@@ -1094,7 +1155,7 @@
       color: #e2e8f0;
     }
     #menu-profesor .profesor-panel select,
-    #menu-profesor .profesor-panel input {
+    #menu-profesor .profesor-panel input:not([type="radio"]) {
       width: 100%;
       padding: 0.6rem 0.8rem;
       margin-bottom: 8px;
@@ -1131,6 +1192,30 @@
     #profesor-forzar-btn:hover { background: #6d28d9 !important; }
     #profesor-abrir-link-btn { background: #2563eb !important; color: white !important; }
     #profesor-abrir-link-btn:hover { background: #1d4ed8 !important; }
+    #menu-profesor .profesor-panel .profesor-link-destino {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin: 0.5rem 0 0.75rem 0;
+      flex-wrap: wrap;
+    }
+    #menu-profesor .profesor-panel .profesor-link-destino label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      color: #a5b4fc;
+      font-size: 0.9rem;
+    }
+    #menu-profesor .profesor-panel .profesor-link-destino label:hover {
+      color: #c7d2fe;
+    }
+    #menu-profesor .profesor-panel .profesor-link-destino input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #6366f1;
+      cursor: pointer;
+    }
     #pizarra-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -1652,7 +1737,17 @@
           <select id="profesor-link-usuario">
             <option value="">-- Seleccionar usuario --</option>
           </select>
-          <button type="button" id="profesor-abrir-link-btn">Abrir en nueva pestaña</button>
+          <div class="profesor-link-destino">
+            <label>
+              <input type="radio" name="profesor-link-destino" value="blank" checked>
+              <span>Nueva pestaña (_blank)</span>
+            </label>
+            <label>
+              <input type="radio" name="profesor-link-destino" value="self">
+              <span>Misma página</span>
+            </label>
+          </div>
+          <button type="button" id="profesor-abrir-link-btn">Abrir link</button>
         </div>
       </div>
     </div>
@@ -1671,7 +1766,7 @@
     <div class="botones">
       <button onclick="iniciar()">Iniciar</button>
       <button onclick="siguiente()" style="display: none;">Siguiente</button>
-      <button onclick="mostrarPista()">Mostrar pista</button>
+      <button onclick="mostrarEjemplos()">Ejemplos</button>
       <button onclick="mostrarSolucion()">Mostrar solución</button>
     </div>
 
@@ -1793,7 +1888,7 @@
         <canvas id="pizarra-canvas"></canvas>
         <button type="button" id="pizarra-salir-fullscreen" title="Salir de pantalla completa">✕ Salir pantalla completa</button>
         <div id="pizarra-info">
-          <span>Lienzo infinito · Pan con herramienta ✋ · Zoom con rueda del mouse</span>
+          <span>Lienzo infinito · Pan: ✋ · Zoom: rueda · Grosor: +/− · Herramientas: Ctrl+1 a Ctrl+4</span>
           <span id="pizarra-zoom-controls" style="margin-left:12px;display:inline-flex;align-items:center;gap:4px;">
             <button type="button" class="pizarra-zoom-btn" id="pizarra-zoom-out" title="Alejar">−</button>
             <span id="pizarra-zoom-val" style="min-width:3rem;">100%</span>
@@ -1865,6 +1960,7 @@
       <li><b>Ctrl + Shift + ↑</b> o <b>Alt + V</b>: Duplicar línea arriba</li>
       <li><b>Ctrl + Shift + ↓</b> o <b>Alt + C</b>: Duplicar línea abajo</li>
       <li><b>Ctrl + D</b>: Seleccionar varias lineas en simultaneoasd (multi-cursor)</li>
+      <li><b>Ctrl + S</b>: Descargar código (.cpp) o pizarra (PNG) si está abierta</li>
     </ul>
     <div style="text-align: right;">
       <button onclick="document.getElementById('modal-atajos').style.display='none'" style="margin-top:1rem;">Cerrar</button>
@@ -2271,6 +2367,9 @@
           opt.textContent = archivo;
           select.appendChild(opt);
         });
+        if (nombreArchivoActual && (data.archivos || []).includes(nombreArchivoActual)) {
+          select.value = nombreArchivoActual;
+        }
       })
       .catch(err => {
         console.warn('Error al cargar archivos para profesor:', err);
@@ -2654,11 +2753,59 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     }
   
-    function mostrarPista() {
-      if (indice >= 0 && indice < ejercicios.length) {
-        const pista = ejercicios[indice].pista;
-        document.getElementById('pista').innerHTML = pista && pista.trim() ? "Pista: " + pista : "Este ejercicio no tiene pista.";
+    function mostrarEjemplos() {
+      const contenedor = document.getElementById('pista');
+      if (indice < 0 || indice >= ejercicios.length) {
+        contenedor.innerHTML = '';
+        return;
       }
+      const actual = ejercicios[indice];
+      const casos = actual.casosDePrueba;
+      if (!casos || casos.length === 0) {
+        contenedor.innerHTML = '<p class="ejemplos-sin-casos">Este ejercicio no tiene casos de prueba.</p>';
+        return;
+      }
+      let html = '<div class="ejemplos-contenedor">';
+      casos.forEach((caso, i) => {
+        const num = i + 1;
+        const entrada = (caso.entrada != null) ? String(caso.entrada) : '';
+        const salida = (caso.salida != null) ? String(caso.salida) : '';
+        const idEntrada = 'ejemplo-entrada-' + indice + '-' + i;
+        const idSalida = 'ejemplo-salida-' + indice + '-' + i;
+        html += '<div class="ejemplo-caso">';
+        html += '<h4>Caso ' + num + '</h4>';
+        html += '<div class="ejemplo-entrada-salida">';
+        html += '<div class="ejemplo-label">Entrada</div>';
+        html += '<div class="ejemplo-pre-wrap"><pre id="' + idEntrada + '">' + escapeHtml(entrada) + '</pre>';
+        html += '<button type="button" class="btn-copiar-ejemplo" title="Copiar entrada" data-copiar-id="' + idEntrada + '" aria-label="Copiar">📋</button></div>';
+        html += '</div>';
+        html += '<div class="ejemplo-entrada-salida">';
+        html += '<div class="ejemplo-label">Salida esperada</div>';
+        html += '<div class="ejemplo-pre-wrap"><pre id="' + idSalida + '">' + escapeHtml(salida) + '</pre>';
+        html += '<button type="button" class="btn-copiar-ejemplo" title="Copiar salida" data-copiar-id="' + idSalida + '" aria-label="Copiar">📋</button></div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+      contenedor.innerHTML = html;
+      contenedor.querySelectorAll('.btn-copiar-ejemplo').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const id = this.getAttribute('data-copiar-id');
+          const el = document.getElementById(id);
+          const texto = el ? el.textContent : '';
+          // Copiar al portapapeles interno de la página (Ctrl+V pegará desde aquí; Ctrl+Shift+C es el del sistema)
+          if (typeof portapapelesInterno !== 'undefined') {
+            portapapelesInterno = texto;
+          }
+          this.classList.add('copiado');
+          this.textContent = '✓';
+          const t = setTimeout(() => { this.classList.remove('copiado'); this.textContent = '📋'; clearTimeout(t); }, 1500);
+        });
+      });
+    }
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
     }
   
     function mostrarEjercicio() {
@@ -3961,13 +4108,20 @@ function descargarCodigo() {
   }, 100);
 }
 
-// Atajo de teclado Ctrl+Shift+S para descargar código
+// Atajo Ctrl+S (o Cmd+S en Mac): descargar pizarra si está abierta, sino descargar código
 document.addEventListener("keydown", function (e) {
-  if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault();
-    descargarCodigo();
+    e.stopPropagation();
+    var overlayPizarra = document.getElementById('pizarra-overlay');
+    if (overlayPizarra && overlayPizarra.classList.contains('activa') && typeof pizarraAbierta !== 'undefined' && pizarraAbierta) {
+      var btnExport = document.getElementById('pizarra-btn-export');
+      if (btnExport) btnExport.click();
+    } else {
+      descargarCodigo();
+    }
   }
-});
+}, true);
 
 function subirCodigo() {
   //Subir codigo con el enunciado
@@ -4716,6 +4870,47 @@ document.addEventListener("keydown", function(e) {
         btnFullscreen.onclick = togglePizarraFullscreen;
         btnSalirFullscreen.onclick = togglePizarraFullscreen;
       }
+      if (!window._pizarraKeydownRegistrado) {
+        window._pizarraKeydownRegistrado = true;
+        document.addEventListener('keydown', function(e) {
+          if (!pizarraAbierta) return;
+          var ov = document.getElementById('pizarra-overlay');
+          if (!ov || !ov.classList.contains('activa')) return;
+          if (e.key === '+' || e.key === '=') {
+            e.preventDefault();
+            if (grosorInput) {
+              var v = Math.min(24, (parseInt(grosorInput.value, 10) || 3) + 1);
+              grosorInput.value = v;
+              document.querySelectorAll('.pizarra-grosor-preset').forEach(function(b) {
+                b.classList.toggle('activo', parseInt(b.getAttribute('data-grosor'), 10) === v);
+              });
+              if (typeof pizarraGuardarGrosorActual === 'function') pizarraGuardarGrosorActual();
+            }
+          } else if (e.key === '-') {
+            e.preventDefault();
+            if (grosorInput) {
+              var v = Math.max(1, (parseInt(grosorInput.value, 10) || 3) - 1);
+              grosorInput.value = v;
+              document.querySelectorAll('.pizarra-grosor-preset').forEach(function(b) {
+                b.classList.toggle('activo', parseInt(b.getAttribute('data-grosor'), 10) === v);
+              });
+              if (typeof pizarraGuardarGrosorActual === 'function') pizarraGuardarGrosorActual();
+            }
+          } else if (e.ctrlKey && (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4')) {
+            e.preventDefault();
+            var herramientas = ['lapiz', 'goma', 'mano', 'line'];
+            var idx = parseInt(e.key, 10) - 1;
+            var nuevaHerramienta = herramientas[idx];
+            if (typeof pizarraGuardarGrosorActual === 'function') pizarraGuardarGrosorActual();
+            pizarraHerramienta = nuevaHerramienta;
+            if (typeof pizarraCargarGrosorHerramienta === 'function') pizarraCargarGrosorHerramienta(nuevaHerramienta);
+            if (figurasMenu) figurasMenu.classList.remove('abierto');
+            if (colorMenu) colorMenu.classList.remove('abierto');
+            actualizarActivo();
+            if (typeof pizarraActualizarCursor === 'function') pizarraActualizarCursor();
+          }
+        });
+      }
     }
 
     function pizarraSetupCanvas() {
@@ -5229,6 +5424,7 @@ document.addEventListener("keydown", function(e) {
     }
     
     function conectarUsuario() {
+      
       const toggleProfesor = document.getElementById('toggle-modo-profesor');
       modoProfesor = toggleProfesor && toggleProfesor.classList.contains('active');
       
@@ -5413,6 +5609,16 @@ document.addEventListener("keydown", function(e) {
     // Función para registrar todos los event listeners de socket (solo una vez)
     function registrarSocketListeners(datosUsuario) {
       if (!socket) return;
+
+      socket.on('usuario-rechazado', (data) => {
+        const mensaje = data.mensaje || 'No se pudo completar la conexión.';
+        alert(mensaje);
+        socket.removeAllListeners();
+        socket.disconnect();
+        socket = null;
+        socketListenersRegistrados = false;
+        document.getElementById('modal-usuario').style.display = 'flex';
+      });
 
       socket.on('usuario-confirmado', (data) => {
         miUsuario = data.displayName != null ? data.displayName : data.username;
@@ -6018,7 +6224,8 @@ document.addEventListener("keydown", function(e) {
       });
       socket.on('profesor-abrir-link', (data) => {
         if (data && data.url) {
-          window.open(data.url, '_blank');
+          const target = data.blank !== false ? '_blank' : '_self';
+          window.open(data.url, target);
         }
       });
       socket.on('profesor-forzar-archivo-indice', (data) => {
@@ -7046,6 +7253,33 @@ document.addEventListener("keydown", function(e) {
         var tile = menu.querySelector('.profesor-tile[data-panel="' + panelId + '"]');
         if (panel) panel.classList.add('visible');
         if (tile) tile.classList.add('activo');
+        if (panelId === 'forzar') {
+          var archivoSelect = document.getElementById('profesor-archivo-select');
+          var indiceInput = document.getElementById('profesor-indice-input');
+          var usuarioSelect = document.getElementById('profesor-forzar-usuario');
+          if (archivoSelect && typeof nombreArchivoActual === 'string' && nombreArchivoActual) {
+            var optArchivo = archivoSelect.querySelector('option[value="' + nombreArchivoActual + '"]');
+            if (optArchivo) archivoSelect.value = nombreArchivoActual;
+          }
+          if (indiceInput && typeof indice === 'number' && indice >= 0) {
+            indiceInput.value = String(indice + 1);
+          }
+          if (usuarioSelect) {
+            var opcionesAlumnos = usuarioSelect.querySelectorAll('option:not(:first-child)');
+            if (opcionesAlumnos.length === 1) {
+              usuarioSelect.value = opcionesAlumnos[0].value;
+            }
+          }
+        }
+        if (panelId === 'link') {
+          var linkUsuarioSelect = document.getElementById('profesor-link-usuario');
+          if (linkUsuarioSelect) {
+            var opcionesLink = linkUsuarioSelect.querySelectorAll('option:not(:first-child)');
+            if (opcionesLink.length === 1) {
+              linkUsuarioSelect.value = opcionesLink[0].value;
+            }
+          }
+        }
       }
       
       menu.querySelectorAll('.profesor-tile').forEach(tile => {
@@ -7129,7 +7363,9 @@ document.addEventListener("keydown", function(e) {
           return;
         }
         if (socket && socket.connected) {
-          socket.emit('profesor-abrir-link', { targetSocketId: socketIdDestino, url: url });
+          const radioBlank = document.querySelector('input[name="profesor-link-destino"][value="blank"]');
+          const abrirEnBlank = !radioBlank || radioBlank.checked;
+          socket.emit('profesor-abrir-link', { targetSocketId: socketIdDestino, url: url, blank: abrirEnBlank });
           if (menu) menu.style.display = 'none';
         }
       });

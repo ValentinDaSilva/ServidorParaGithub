@@ -17,7 +17,7 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-  const carpetaEjercicios = "C:/Users/Valentin/Desktop/Repositorios/Algoritmos-Y-Estructuras-De-Datos/Ejercicios";
+  const carpetaEjercicios = "C:/Users/valed/Desktop/Repositorios/Algoritmos-Y-Estructuras-De-Datos/Ejercicios";
   const MAX_OUTPUT_LENGTH = 100 * 1024;
   const archivoProgreso = path.join(__dirname, 'progreso-usuarios.json');
 
@@ -325,6 +325,16 @@ if (!fs.existsSync(tempDir)) {
     // Cuando un usuario se une (con correo+nombre o como profesor)
     socket.on('usuario-join', (data) => {
       const { username, displayName, nombreArchivo, isProfesor } = data;
+      
+      // Restricción: solo un profesor conectado a la vez
+      if (isProfesor) {
+        const yaHayProfesor = Array.from(usuariosConectados.values()).some(u => u.isProfesor);
+        if (yaHayProfesor) {
+          socket.emit('usuario-rechazado', { mensaje: 'El profesor ya está conectado. Solo se permite uno.' });
+          return;
+        }
+      }
+      
       const color = generarColorAleatorio();
       const nombreParaLista = displayName != null ? displayName : (username || 'Usuario');
       
@@ -846,9 +856,9 @@ if (!fs.existsSync(tempDir)) {
       io.emit('profesor-pizarra-cerrar');
     });
     socket.on('profesor-abrir-link', (data) => {
-      const { targetSocketId, url } = data || {};
+      const { targetSocketId, url, blank } = data || {};
       if (targetSocketId && url) {
-        io.to(targetSocketId).emit('profesor-abrir-link', { url });
+        io.to(targetSocketId).emit('profesor-abrir-link', { url, blank: blank !== false });
       }
     });
     socket.on('profesor-forzar-archivo-indice', (data) => {
