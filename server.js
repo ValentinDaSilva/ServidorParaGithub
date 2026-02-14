@@ -294,6 +294,9 @@ if (!fs.existsSync(tempDir)) {
   let posicionesCursor = new Map(); // socketId -> {tabId, line, ch} - Posiciones actuales de cursor por usuario
   let contadorTabs = 0; // Contador para IDs únicos de pestañas
 
+  // Estado de la pizarra colaborativa (strokes para sincronizar)
+  let pizarraStrokes = [];
+
   // Servir archivos estáticos
   app.use(express.static(__dirname));
 
@@ -784,6 +787,34 @@ if (!fs.existsSync(tempDir)) {
       socket.broadcast.emit('documentos-actualizados', listaDocumentos);
 
       console.log(`Pestaña ${tabId} eliminada por usuario ${socket.id}`);
+    });
+
+    // --- Pizarra colaborativa ---
+    socket.on('pizarra-join', () => {
+      socket.join('pizarra');
+      socket.emit('pizarra-state', { strokes: pizarraStrokes });
+    });
+
+    socket.on('pizarra-leave', () => {
+      socket.leave('pizarra');
+    });
+
+    socket.on('pizarra-stroke', (data) => {
+      pizarraStrokes.push(data);
+      if (pizarraStrokes.length > 500) pizarraStrokes = pizarraStrokes.slice(-400);
+      socket.to('pizarra').emit('pizarra-stroke', data);
+    });
+
+    socket.on('pizarra-clear', () => {
+      pizarraStrokes = [];
+      io.to('pizarra').emit('pizarra-clear');
+    });
+
+    socket.on('pizarra-undo', () => {
+      if (pizarraStrokes.length > 0) {
+        pizarraStrokes.pop();
+        socket.to('pizarra').emit('pizarra-undo');
+      }
     });
 
     // Cuando un usuario se desconecta

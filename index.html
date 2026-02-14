@@ -156,16 +156,23 @@
 
     #pista, #solucion { margin-top: 1rem; }
 
-    #abrir-editor {
+    /* Contenedor botones derecha (Editor + Pizarra) para que no se peguen */
+    #botones-derecha {
       position: fixed;
       top: 20px;
-      right: 60px;
+      right: 20px;
       z-index: 1000;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+    }
+    #abrir-editor {
       padding: 0.6rem 1.2rem;
       font-size: 1rem;
       background-color: #28a745;
+      margin: 0;
     }
-
     #abrir-editor:hover { background-color: #218838; }
 
     #editor-overlay {
@@ -903,6 +910,369 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
+    /* === Pizarra colaborativa === */
+    #abrir-pizarra {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin: 0;
+    }
+    #abrir-pizarra:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+    #pizarra-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(165deg, #0c0c1a 0%, #151530 40%, #0d0d18 100%);
+      display: none;
+      flex-direction: column;
+      z-index: 998;
+      font-family: 'Roboto', sans-serif;
+    }
+    #pizarra-overlay.activa { display: flex; }
+    #pizarra-overlay.pizarra-fullscreen #pizarra-header,
+    #pizarra-overlay.pizarra-fullscreen #pizarra-toolbar,
+    #pizarra-overlay.pizarra-fullscreen #pizarra-info { display: none !important; }
+    #pizarra-overlay.pizarra-fullscreen #pizarra-body { flex: 1; }
+    #pizarra-btn-fullscreen {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    #pizarra-btn-fullscreen:hover { background: rgba(99, 102, 241, 0.35); color: #e0e7ff; }
+    #pizarra-salir-fullscreen {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      padding: 0.5rem 1rem;
+      background: rgba(15, 15, 35, 0.9);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 10px;
+      color: #a5b4fc;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+      display: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    #pizarra-overlay.pizarra-fullscreen #pizarra-salir-fullscreen { display: block; }
+    #pizarra-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(12, 12, 26, 0.97);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.25);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    #pizarra-header h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #e0e7ff;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: 0.02em;
+    }
+    #pizarra-header h2::before {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+      animation: pizarra-pulse 2s ease-in-out infinite;
+    }
+    @keyframes pizarra-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    #pizarra-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pizarra-header-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #pizarra-btn-undo {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+    }
+    #pizarra-btn-undo:hover { background: rgba(99, 102, 241, 0.35); color: #e0e7ff; }
+    #pizarra-btn-export {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+    #pizarra-btn-export:hover { background: rgba(34, 197, 94, 0.35); color: #fff; }
+    #pizarra-cerrar {
+      padding: 0.5rem 1.2rem;
+      font-size: 0.95rem;
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+    }
+    #pizarra-cerrar:hover {
+      background: rgba(239, 68, 68, 0.4);
+      color: #fff;
+    }
+    #pizarra-body {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #pizarra-toolbar {
+      flex-shrink: 0;
+      width: 88px;
+      background: rgba(12, 12, 26, 0.98);
+      border-right: 1px solid rgba(99, 102, 241, 0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      gap: 6px;
+    }
+    .pizarra-toolbar-sep {
+      width: 56px;
+      height: 1px;
+      background: rgba(99, 102, 241, 0.2);
+      margin: 8px 0 4px;
+    }
+    .pizarra-tool-btn {
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      background: rgba(99, 102, 241, 0.12);
+      color: #a5b4fc;
+      transition: background 0.2s, color 0.2s, transform 0.12s;
+    }
+    .pizarra-tool-btn:hover {
+      background: rgba(99, 102, 241, 0.28);
+      color: #e0e7ff;
+      transform: scale(1.06);
+    }
+    .pizarra-tool-btn.activo {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      box-shadow: 0 3px 16px rgba(99, 102, 241, 0.45);
+    }
+    .pizarra-grosor-preset {
+      width: 48px;
+      height: 28px;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 8px;
+      background: rgba(30, 41, 59, 0.8);
+      color: #94a3b8;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pizarra-grosor-preset:hover { background: rgba(99, 102, 241, 0.2); color: #e0e7ff; }
+    .pizarra-grosor-preset.activo {
+      background: rgba(99, 102, 241, 0.35);
+      color: #fff;
+      border-color: rgba(99, 102, 241, 0.6);
+    }
+    .pizarra-figuras-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .pizarra-figuras-menu {
+      position: absolute;
+      left: 100%;
+      top: 0;
+      margin-left: 8px;
+      background: rgba(15, 15, 35, 0.98);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      z-index: 50;
+    }
+    .pizarra-figuras-menu.abierto { display: flex; }
+    .pizarra-figura-opt {
+      width: 48px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .pizarra-figura-opt:hover {
+      background: rgba(99, 102, 241, 0.35);
+      color: #fff;
+    }
+    .pizarra-figura-opt.activo {
+      background: rgba(99, 102, 241, 0.4);
+      color: #fff;
+    }
+    .pizarra-color-wrap { position: relative; }
+    .pizarra-color-btn {
+      width: 44px;
+      height: 44px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 12px;
+      cursor: pointer;
+      padding: 0;
+      background: #1e293b;
+    }
+    .pizarra-color-menu {
+      position: absolute;
+      left: 100%;
+      top: 0;
+      margin-left: 8px;
+      background: rgba(15, 15, 35, 0.98);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      padding: 10px;
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 140px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      z-index: 50;
+    }
+    .pizarra-color-menu.abierto { display: flex; }
+    .pizarra-color-swatch {
+      width: 28px;
+      height: 28px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .pizarra-color-swatch:hover { transform: scale(1.1); }
+    .pizarra-color-paleta {
+      width: 100%;
+      padding: 6px 10px;
+      margin-top: 4px;
+      font-size: 0.8rem;
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .pizarra-color-paleta:hover { background: rgba(99, 102, 241, 0.35); }
+    #pizarra-color-input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+    #pizarra-grosor {
+      width: 44px;
+      height: 32px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 8px;
+      color: #e0e7ff;
+      font-size: 0.9rem;
+      text-align: center;
+      cursor: pointer;
+    }
+    #pizarra-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #0f172a;
+      background-image:
+        linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    #pizarra-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    #pizarra-info {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: rgba(12, 12, 26, 0.92);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 24px;
+      color: #64748b;
+      font-size: 0.85rem;
+      z-index: 10;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pizarra-zoom-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 8px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      font-size: 1.2rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .pizarra-zoom-btn:hover { background: rgba(99, 102, 241, 0.3); color: #fff; }
+
   </style>
   <style>
 /* Scrollbar general (para todo el documento) */
@@ -1007,7 +1377,10 @@
   <div class="sync-indicator" id="sync-indicator">Sincronizando...</div>
 
   <!-- Botones fijos -->
-  <button id="abrir-editor" onclick="toggleEditor()">Editor</button>
+  <div id="botones-derecha">
+    <button id="abrir-editor" onclick="toggleEditor()">Editor</button>
+    <button id="abrir-pizarra" title="Pizarra colaborativa" onclick="togglePizarra()">✏️ Pizarra</button>
+  </div>
   <button id="cargar-ejercicios" title="Cargar ejercicios desde servidor 📂" onclick="mostrarModalSeleccionarArchivo()">📂</button>
   <input type="file" id="archivo-ejercicios" accept=".js" style="display: none;" />
 
@@ -1080,6 +1453,76 @@
         <div class="output" data-tab-id="">
           <button class="toggleOutputSize" title="Maximizar salida">🗗</button>
           <div class="output-content">Esperando ejecución...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pizarra colaborativa (overlay) -->
+  <div id="pizarra-overlay">
+    <div id="pizarra-header">
+      <h2>Pizarra colaborativa</h2>
+      <div id="pizarra-header-actions">
+        <button type="button" class="pizarra-header-btn" id="pizarra-btn-fullscreen" title="Pantalla completa">⛶ Pantalla completa</button>
+        <button type="button" class="pizarra-header-btn" id="pizarra-btn-undo" title="Deshacer último trazo">↩ Deshacer</button>
+        <button type="button" class="pizarra-header-btn" id="pizarra-btn-export" title="Descargar como imagen PNG">⬇ Exportar PNG</button>
+        <button type="button" id="pizarra-cerrar" onclick="togglePizarra()">Cerrar</button>
+      </div>
+    </div>
+    <div id="pizarra-body">
+      <div id="pizarra-toolbar">
+        <button class="pizarra-tool-btn activo" id="pizarra-tool-lapiz" title="Lápiz">✏️</button>
+        <button class="pizarra-tool-btn" id="pizarra-tool-goma" title="Goma">🧹</button>
+        <button class="pizarra-tool-btn" id="pizarra-tool-mano" title="Desplazarse (pan)">✋</button>
+        <div class="pizarra-figuras-wrap">
+          <button class="pizarra-tool-btn" id="pizarra-tool-figuras" title="Figuras">◇</button>
+          <div class="pizarra-figuras-menu" id="pizarra-figuras-menu">
+            <button type="button" class="pizarra-figura-opt" data-figura="line" title="Línea recta">／</button>
+            <button type="button" class="pizarra-figura-opt" data-figura="rect" title="Rectángulo">▭</button>
+            <button type="button" class="pizarra-figura-opt" data-figura="circle" title="Círculo">○</button>
+          </div>
+        </div>
+        <div class="pizarra-toolbar-sep"></div>
+        <div class="pizarra-color-wrap">
+          <button type="button" class="pizarra-color-btn" id="pizarra-color-btn" title="Color" style="background:#e0e7ff;"></button>
+          <input type="color" id="pizarra-color-input" value="#e0e7ff">
+          <div class="pizarra-color-menu" id="pizarra-color-menu">
+            <div class="pizarra-color-swatch" data-color="#e0e7ff" style="background:#e0e7ff"></div>
+            <div class="pizarra-color-swatch" data-color="#ffffff" style="background:#fff"></div>
+            <div class="pizarra-color-swatch" data-color="#ef4444" style="background:#ef4444"></div>
+            <div class="pizarra-color-swatch" data-color="#f97316" style="background:#f97316"></div>
+            <div class="pizarra-color-swatch" data-color="#eab308" style="background:#eab308"></div>
+            <div class="pizarra-color-swatch" data-color="#22c55e" style="background:#22c55e"></div>
+            <div class="pizarra-color-swatch" data-color="#06b6d4" style="background:#06b6d4"></div>
+            <div class="pizarra-color-swatch" data-color="#3b82f6" style="background:#3b82f6"></div>
+            <div class="pizarra-color-swatch" data-color="#8b5cf6" style="background:#8b5cf6"></div>
+            <div class="pizarra-color-swatch" data-color="#ec4899" style="background:#ec4899"></div>
+            <div class="pizarra-color-swatch" data-color="#000000" style="background:#000"></div>
+            <div class="pizarra-color-swatch" data-color="#64748b" style="background:#64748b"></div>
+            <button type="button" class="pizarra-color-paleta" id="pizarra-color-paleta">Paleta completa</button>
+          </div>
+        </div>
+        <span style="color:#64748b;font-size:0.7rem;margin-top:2px;">Grosor</span>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">
+          <button type="button" class="pizarra-grosor-preset" data-grosor="1">1</button>
+          <button type="button" class="pizarra-grosor-preset activo" data-grosor="3">3</button>
+          <button type="button" class="pizarra-grosor-preset" data-grosor="6">6</button>
+          <button type="button" class="pizarra-grosor-preset" data-grosor="12">12</button>
+        </div>
+        <input type="number" id="pizarra-grosor" value="3" min="1" max="24" title="Grosor (px)">
+        <div class="pizarra-toolbar-sep"></div>
+        <button class="pizarra-tool-btn" id="pizarra-limpiar" title="Limpiar todo">🗑️</button>
+      </div>
+      <div id="pizarra-area">
+        <canvas id="pizarra-canvas"></canvas>
+        <button type="button" id="pizarra-salir-fullscreen" title="Salir de pantalla completa">✕ Salir pantalla completa</button>
+        <div id="pizarra-info">
+          <span>Lienzo infinito · Pan con herramienta ✋ · Zoom con rueda del mouse</span>
+          <span id="pizarra-zoom-controls" style="margin-left:12px;display:inline-flex;align-items:center;gap:4px;">
+            <button type="button" class="pizarra-zoom-btn" id="pizarra-zoom-out" title="Alejar">−</button>
+            <span id="pizarra-zoom-val" style="min-width:3rem;">100%</span>
+            <button type="button" class="pizarra-zoom-btn" id="pizarra-zoom-in" title="Acercar">+</button>
+          </span>
         </div>
       </div>
     </div>
@@ -2460,7 +2903,10 @@ function toggleEditor() {
     localStorage.setItem('editorAbierto', 'false');
   } else {
     overlay.style.display = "flex";
-    
+    overlay.style.zIndex = "1000";
+    const pizarraOverlay = document.getElementById("pizarra-overlay");
+    if (pizarraOverlay) pizarraOverlay.style.zIndex = "998";
+
     // Restaurar estado de maximización de la pestaña actual
     if (pestañaActiva) {
       const editorData = editoresPorPestaña.get(pestañaActiva);
@@ -3583,6 +4029,529 @@ document.addEventListener("keydown", function(e) {
   document.getElementById('comentarioa-funcion').value = '';
 }
 
+    // ========== PIZARRA COLABORATIVA ==========
+    let pizarraStrokesLocal = [];
+    let pizarraAbierta = false;
+    let pizarraHerramienta = 'lapiz';
+    let pizarraDibujando = false;
+    let pizarraCurrentStroke = [];
+    let pizarraShapeStart = null;
+    let pizarraPanX = 0, pizarraPanY = 0, pizarraZoom = 1;
+    let pizarraPanStart = null;
+    let pizarraGrosorLapiz = 3, pizarraGrosorGoma = 3, pizarraGrosorFiguras = 3;
+
+    function pizarraScreenToWorld(sx, sy) {
+      return { x: (sx - pizarraPanX) / pizarraZoom, y: (sy - pizarraPanY) / pizarraZoom };
+    }
+
+    function pizarraRedraw() {
+      const canvas = document.getElementById('pizarra-canvas');
+      const overlay = document.getElementById('pizarra-overlay');
+      if (!canvas || !overlay || !overlay.classList.contains('activa')) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, w, h);
+      ctx.save();
+      ctx.translate(pizarraPanX, pizarraPanY);
+      ctx.scale(pizarraZoom, pizarraZoom);
+      var gridStep = 24;
+      var worldLeft = -pizarraPanX / pizarraZoom;
+      var worldTop = -pizarraPanY / pizarraZoom;
+      var worldRight = (w - pizarraPanX) / pizarraZoom;
+      var worldBottom = (h - pizarraPanY) / pizarraZoom;
+      var gStartX = Math.floor(worldLeft / gridStep) * gridStep;
+      var gEndX = Math.ceil(worldRight / gridStep) * gridStep;
+      var gStartY = Math.floor(worldTop / gridStep) * gridStep;
+      var gEndY = Math.ceil(worldBottom / gridStep) * gridStep;
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.06)';
+      ctx.lineWidth = 1 / pizarraZoom;
+      for (var x = gStartX; x <= gEndX; x += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(x, gStartY);
+        ctx.lineTo(x, gEndY);
+        ctx.stroke();
+      }
+      for (var y = gStartY; y <= gEndY; y += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(gStartX, y);
+        ctx.lineTo(gEndX, y);
+        ctx.stroke();
+      }
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      pizarraStrokesLocal.forEach(s => {
+        if (s.tool === 'goma') {
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = (s.lineWidth || 3) * 4;
+        } else {
+          ctx.strokeStyle = s.color || '#e0e7ff';
+          ctx.lineWidth = s.lineWidth || 3;
+        }
+        if (s.points && s.points.length >= 2) {
+          ctx.beginPath();
+          ctx.moveTo(s.points[0].x, s.points[0].y);
+          for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+          ctx.stroke();
+        } else if ((s.tool === 'line' || s.tool === 'rect' || s.tool === 'circle') && s.start && s.end) {
+          var x1 = s.start.x, y1 = s.start.y, x2 = s.end.x, y2 = s.end.y;
+          if (s.tool === 'line') {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          } else if (s.tool === 'rect') {
+            var rx = Math.min(x1, x2), ry = Math.min(y1, y2), rw = Math.abs(x2 - x1), rh = Math.abs(y2 - y1);
+            ctx.strokeRect(rx, ry, rw, rh);
+          } else if (s.tool === 'circle') {
+            var cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+            var rad = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) / 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, Math.max(1, rad), 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+        }
+      });
+      if (pizarraDibujando && pizarraCurrentStroke && pizarraCurrentStroke.length >= 2) {
+        ctx.strokeStyle = pizarraHerramienta === 'goma' ? '#0f172a' : '#e0e7ff';
+        ctx.lineWidth = pizarraHerramienta === 'goma' ? 12 : 3;
+        var ci = document.getElementById('pizarra-color-input');
+        var gi = document.getElementById('pizarra-grosor');
+        if (ci) ctx.strokeStyle = pizarraHerramienta === 'goma' ? '#0f172a' : ci.value;
+        if (gi) ctx.lineWidth = pizarraHerramienta === 'goma' ? parseInt(gi.value, 10) * 4 : parseInt(gi.value, 10);
+        ctx.beginPath();
+        ctx.moveTo(pizarraCurrentStroke[0].x, pizarraCurrentStroke[0].y);
+        for (var i = 1; i < pizarraCurrentStroke.length; i++) ctx.lineTo(pizarraCurrentStroke[i].x, pizarraCurrentStroke[i].y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function pizarraCoords(e) {
+      const canvas = document.getElementById('pizarra-canvas');
+      if (!canvas) return { x: 0, y: 0 };
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      var t = (e.touches && e.touches[0]) ? e.touches[0] : (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      var clientX = t ? t.clientX : e.clientX;
+      var clientY = t ? t.clientY : e.clientY;
+      return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+    }
+
+    function togglePizarra() {
+      const overlay = document.getElementById('pizarra-overlay');
+      const canvas = document.getElementById('pizarra-canvas');
+      if (!overlay || !canvas) return;
+      pizarraAbierta = !pizarraAbierta;
+      if (pizarraAbierta) {
+        overlay.classList.add('activa');
+        overlay.style.zIndex = '1000';
+        const editorOverlayEl = document.getElementById('editor-overlay');
+        if (editorOverlayEl) editorOverlayEl.style.zIndex = '998';
+        pizarraPanX = 0;
+        pizarraPanY = 0;
+        pizarraZoom = 1;
+        pizarraResize();
+        if (socket && socket.connected) {
+          socket.emit('pizarra-join');
+        }
+        pizarraSetupTools();
+        pizarraSetupCanvas();
+        pizarraRedraw();
+      } else {
+        overlay.classList.remove('activa');
+        if (socket && socket.connected) {
+          socket.emit('pizarra-leave');
+        }
+      }
+    }
+
+    function pizarraResize() {
+      const canvas = document.getElementById('pizarra-canvas');
+      const area = document.getElementById('pizarra-area');
+      if (!canvas || !area) return;
+      const rect = area.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width);
+      canvas.height = Math.floor(rect.height);
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      pizarraRedraw();
+    }
+
+    function pizarraSetupTools() {
+      const lapiz = document.getElementById('pizarra-tool-lapiz');
+      const goma = document.getElementById('pizarra-tool-goma');
+      const figurasBtn = document.getElementById('pizarra-tool-figuras');
+      const figurasMenu = document.getElementById('pizarra-figuras-menu');
+      const limpiar = document.getElementById('pizarra-limpiar');
+      const grosorInput = document.getElementById('pizarra-grosor');
+      const btnUndo = document.getElementById('pizarra-btn-undo');
+      const btnExport = document.getElementById('pizarra-btn-export');
+      var esFigura = function(h) { return h === 'line' || h === 'rect' || h === 'circle'; };
+      const manoBtn = document.getElementById('pizarra-tool-mano');
+      var actualizarActivo = function() {
+        document.querySelectorAll('.pizarra-tool-btn').forEach(btn => btn.classList.remove('activo'));
+        document.querySelectorAll('.pizarra-figura-opt').forEach(btn => btn.classList.remove('activo'));
+        if (pizarraHerramienta === 'lapiz' && lapiz) lapiz.classList.add('activo');
+        else if (pizarraHerramienta === 'goma' && goma) goma.classList.add('activo');
+        else if (pizarraHerramienta === 'mano' && manoBtn) manoBtn.classList.add('activo');
+        else if (esFigura(pizarraHerramienta)) {
+          if (figurasBtn) figurasBtn.classList.add('activo');
+          var opt = document.querySelector('.pizarra-figura-opt[data-figura="' + pizarraHerramienta + '"]');
+          if (opt) opt.classList.add('activo');
+        }
+      };
+      document.querySelectorAll('.pizarra-tool-btn').forEach(btn => btn.classList.remove('activo'));
+      if (lapiz) {
+        lapiz.onclick = function() {
+          pizarraHerramienta = 'lapiz';
+          if (figurasMenu) figurasMenu.classList.remove('abierto');
+          actualizarActivo();
+        };
+      }
+      if (goma) {
+        goma.onclick = function() {
+          pizarraHerramienta = 'goma';
+          if (figurasMenu) figurasMenu.classList.remove('abierto');
+          actualizarActivo();
+        };
+      }
+      var colorMenu = document.getElementById('pizarra-color-menu');
+      var colorBtn = document.getElementById('pizarra-color-btn');
+      var colorInputEl = document.getElementById('pizarra-color-input');
+      if (colorBtn && colorMenu && colorInputEl) {
+        colorBtn.onclick = function(e) { e.stopPropagation(); colorMenu.classList.toggle('abierto'); if (figurasMenu) figurasMenu.classList.remove('abierto'); };
+        document.querySelectorAll('.pizarra-color-swatch').forEach(function(sw) {
+          sw.onclick = function(e) {
+            e.stopPropagation();
+            var col = this.getAttribute('data-color');
+            colorInputEl.value = col;
+            colorBtn.style.background = col;
+            colorMenu.classList.remove('abierto');
+          };
+        });
+        document.getElementById('pizarra-color-paleta') && (document.getElementById('pizarra-color-paleta').onclick = function(e) {
+          e.stopPropagation();
+          colorMenu.classList.remove('abierto');
+          colorInputEl.click();
+        });
+        colorInputEl.addEventListener('input', function() { colorBtn.style.background = colorInputEl.value; });
+        if (!window._pizarraColorCerrarRegistrado) {
+          window._pizarraColorCerrarRegistrado = true;
+          document.addEventListener('click', function(ev) {
+            var cm = document.getElementById('pizarra-color-menu');
+            var cb = document.getElementById('pizarra-color-btn');
+            if (cm && cm.classList.contains('abierto') && cb && !cb.contains(ev.target) && !cm.contains(ev.target)) cm.classList.remove('abierto');
+          });
+        }
+      }
+      if (manoBtn) {
+        manoBtn.onclick = function() {
+          pizarraGuardarGrosorActual();
+          pizarraHerramienta = 'mano';
+          if (figurasMenu) figurasMenu.classList.remove('abierto');
+          if (colorMenu) colorMenu.classList.remove('abierto');
+          actualizarActivo();
+          var c = document.getElementById('pizarra-canvas');
+          if (c) c.style.cursor = 'grab';
+        };
+      }
+      var pizarraActualizarCursor = function() {
+        var c = document.getElementById('pizarra-canvas');
+        if (!c) return;
+        c.style.cursor = pizarraHerramienta === 'mano' ? (pizarraPanStart ? 'grabbing' : 'grab') : 'crosshair';
+      };
+      var pizarraGuardarGrosorActual = function() {
+        var g = grosorInput ? parseInt(grosorInput.value, 10) : 3;
+        if (pizarraHerramienta === 'lapiz') pizarraGrosorLapiz = g;
+        else if (pizarraHerramienta === 'goma') pizarraGrosorGoma = g;
+        else if (pizarraHerramienta === 'line' || pizarraHerramienta === 'rect' || pizarraHerramienta === 'circle') pizarraGrosorFiguras = g;
+      };
+      var pizarraCargarGrosorHerramienta = function(h) {
+        var g = 3;
+        if (h === 'lapiz') g = pizarraGrosorLapiz;
+        else if (h === 'goma') g = pizarraGrosorGoma;
+        else if (h === 'line' || h === 'rect' || h === 'circle') g = pizarraGrosorFiguras;
+        if (grosorInput) { grosorInput.value = g; }
+        document.querySelectorAll('.pizarra-grosor-preset').forEach(function(b) {
+          b.classList.toggle('activo', parseInt(b.getAttribute('data-grosor'), 10) === g);
+        });
+      };
+      if (lapiz) lapiz.onclick = function() { pizarraGuardarGrosorActual(); pizarraHerramienta = 'lapiz'; pizarraCargarGrosorHerramienta('lapiz'); if (figurasMenu) figurasMenu.classList.remove('abierto'); if (colorMenu) colorMenu.classList.remove('abierto'); actualizarActivo(); pizarraActualizarCursor(); };
+      if (goma) goma.onclick = function() { pizarraGuardarGrosorActual(); pizarraHerramienta = 'goma'; pizarraCargarGrosorHerramienta('goma'); if (figurasMenu) figurasMenu.classList.remove('abierto'); if (colorMenu) colorMenu.classList.remove('abierto'); actualizarActivo(); pizarraActualizarCursor(); };
+      var actualizarZoomUI = function() {
+        var zv = document.getElementById('pizarra-zoom-val');
+        if (zv) zv.textContent = Math.round(pizarraZoom * 100) + '%';
+      };
+      var hacerZoom = function(centroX, centroY, factor) {
+        var newZoom = Math.max(0.25, Math.min(4, pizarraZoom * factor));
+        var wx = (centroX - pizarraPanX) / pizarraZoom;
+        var wy = (centroY - pizarraPanY) / pizarraZoom;
+        pizarraPanX = centroX - wx * newZoom;
+        pizarraPanY = centroY - wy * newZoom;
+        pizarraZoom = newZoom;
+        actualizarZoomUI();
+        pizarraRedraw();
+      };
+      document.getElementById('pizarra-zoom-in') && (document.getElementById('pizarra-zoom-in').onclick = function() {
+        var c = document.getElementById('pizarra-canvas');
+        hacerZoom(c ? c.width / 2 : 0, c ? c.height / 2 : 0, 1.25);
+      });
+      document.getElementById('pizarra-zoom-out') && (document.getElementById('pizarra-zoom-out').onclick = function() {
+        var c = document.getElementById('pizarra-canvas');
+        hacerZoom(c ? c.width / 2 : 0, c ? c.height / 2 : 0, 0.8);
+      });
+      actualizarZoomUI();
+      if (figurasBtn && figurasMenu) {
+        figurasBtn.onclick = function(e) {
+          e.stopPropagation();
+          figurasMenu.classList.toggle('abierto');
+          if (colorMenu) colorMenu.classList.remove('abierto');
+        };
+        document.querySelectorAll('.pizarra-figura-opt').forEach(function(opt) {
+          opt.onclick = function(e) {
+            e.stopPropagation();
+            if (typeof pizarraGuardarGrosorActual === 'function') pizarraGuardarGrosorActual();
+            pizarraHerramienta = this.getAttribute('data-figura');
+            if (typeof pizarraCargarGrosorHerramienta === 'function') pizarraCargarGrosorHerramienta(pizarraHerramienta);
+            figurasMenu.classList.remove('abierto');
+            if (colorMenu) colorMenu.classList.remove('abierto');
+            actualizarActivo();
+            var cnv = document.getElementById('pizarra-canvas');
+            if (cnv) cnv.style.cursor = 'crosshair';
+          };
+        });
+        if (!window._pizarraFigurasCerrarRegistrado) {
+          window._pizarraFigurasCerrarRegistrado = true;
+          document.addEventListener('click', function(ev) {
+            var m = document.getElementById('pizarra-figuras-menu');
+            var b = document.getElementById('pizarra-tool-figuras');
+            if (m && m.classList.contains('abierto') && b && !b.contains(ev.target) && !m.contains(ev.target)) {
+              m.classList.remove('abierto');
+            }
+          });
+        }
+      }
+      actualizarActivo();
+      if (typeof pizarraCargarGrosorHerramienta === 'function') pizarraCargarGrosorHerramienta(pizarraHerramienta);
+      if (limpiar) {
+        limpiar.onclick = () => {
+          if (socket && socket.connected) socket.emit('pizarra-clear');
+          pizarraStrokesLocal = [];
+          pizarraRedraw();
+        };
+      }
+      document.querySelectorAll('.pizarra-grosor-preset').forEach(btn => {
+        btn.onclick = function() {
+          var g = parseInt(this.getAttribute('data-grosor'), 10);
+          if (grosorInput) { grosorInput.value = g; }
+          document.querySelectorAll('.pizarra-grosor-preset').forEach(b => b.classList.remove('activo'));
+          this.classList.add('activo');
+          if (typeof pizarraGuardarGrosorActual === 'function') pizarraGuardarGrosorActual();
+        };
+      });
+      if (grosorInput) {
+        grosorInput.addEventListener('input', function() {
+          var v = parseInt(this.value, 10) || 3;
+          document.querySelectorAll('.pizarra-grosor-preset').forEach(b => {
+            b.classList.toggle('activo', parseInt(b.getAttribute('data-grosor'), 10) === v);
+          });
+          if (typeof pizarraGuardarGrosorActual === 'function') pizarraGuardarGrosorActual();
+        });
+      }
+      if (btnUndo) {
+        btnUndo.onclick = function() {
+          if (pizarraStrokesLocal.length > 0) {
+            pizarraStrokesLocal.pop();
+            if (socket && socket.connected) socket.emit('pizarra-undo');
+            pizarraRedraw();
+          }
+        };
+      }
+      if (btnExport) {
+        btnExport.onclick = function() {
+          var canvas = document.getElementById('pizarra-canvas');
+          if (!canvas) return;
+          var link = document.createElement('a');
+          link.download = 'pizarra-' + (new Date().toISOString().slice(0,19).replace(/:/g,'-')) + '.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        };
+      }
+      var btnFullscreen = document.getElementById('pizarra-btn-fullscreen');
+      var btnSalirFullscreen = document.getElementById('pizarra-salir-fullscreen');
+      var overlayPizarra = document.getElementById('pizarra-overlay');
+      if (btnFullscreen && btnSalirFullscreen && overlayPizarra) {
+        var togglePizarraFullscreen = function() {
+          overlayPizarra.classList.toggle('pizarra-fullscreen');
+          btnFullscreen.textContent = overlayPizarra.classList.contains('pizarra-fullscreen') ? '⛶ Salir pantalla completa' : '⛶ Pantalla completa';
+          pizarraResize();
+        };
+        btnFullscreen.onclick = togglePizarraFullscreen;
+        btnSalirFullscreen.onclick = togglePizarraFullscreen;
+      }
+    }
+
+    function pizarraSetupCanvas() {
+      const canvas = document.getElementById('pizarra-canvas');
+      if (!canvas) return;
+      const colorInput = document.getElementById('pizarra-color-input');
+      const grosorInput = document.getElementById('pizarra-grosor');
+
+      var esFiguraTool = function() { return pizarraHerramienta === 'line' || pizarraHerramienta === 'rect' || pizarraHerramienta === 'circle'; };
+
+      const startDraw = (e) => {
+        e.preventDefault();
+        const pt = pizarraCoords(e);
+        if (pizarraHerramienta === 'mano') {
+          pizarraPanStart = { x: pt.x, y: pt.y };
+          canvas.style.cursor = 'grabbing';
+        } else if (esFiguraTool()) {
+          pizarraDibujando = true;
+          pizarraShapeStart = pizarraScreenToWorld(pt.x, pt.y);
+        } else {
+          pizarraDibujando = true;
+          pizarraCurrentStroke = [pizarraScreenToWorld(pt.x, pt.y)];
+        }
+      };
+
+      const moveDraw = (e) => {
+        e.preventDefault();
+        const pt = pizarraCoords(e);
+        if (pizarraHerramienta === 'mano' && pizarraPanStart) {
+          pizarraPanX += pt.x - pizarraPanStart.x;
+          pizarraPanY += pt.y - pizarraPanStart.y;
+          pizarraPanStart = { x: pt.x, y: pt.y };
+          pizarraRedraw();
+          return;
+        }
+        if (!pizarraDibujando) return;
+        var wpt = pizarraScreenToWorld(pt.x, pt.y);
+        if (esFiguraTool() && pizarraShapeStart) {
+          pizarraRedraw();
+          var ctx = canvas.getContext('2d');
+          ctx.save();
+          ctx.translate(pizarraPanX, pizarraPanY);
+          ctx.scale(pizarraZoom, pizarraZoom);
+          var color = colorInput ? colorInput.value : '#e0e7ff';
+          var lw = grosorInput ? parseInt(grosorInput.value, 10) : 3;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = lw;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          var x1 = pizarraShapeStart.x, y1 = pizarraShapeStart.y, x2 = wpt.x, y2 = wpt.y;
+          if (pizarraHerramienta === 'line') {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          } else if (pizarraHerramienta === 'rect') {
+            var rx = Math.min(x1, x2), ry = Math.min(y1, y2), rw = Math.abs(x2 - x1), rh = Math.abs(y2 - y1);
+            ctx.strokeRect(rx, ry, rw, rh);
+          } else if (pizarraHerramienta === 'circle') {
+            var cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+            var rad = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) / 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, Math.max(1, rad), 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else {
+          pizarraCurrentStroke.push(wpt);
+          var ctx2 = canvas.getContext('2d');
+          ctx2.save();
+          ctx2.translate(pizarraPanX, pizarraPanY);
+          ctx2.scale(pizarraZoom, pizarraZoom);
+          var color2 = pizarraHerramienta === 'goma' ? '#0f172a' : (colorInput ? colorInput.value : '#e0e7ff');
+          var lw2 = pizarraHerramienta === 'goma' ? (grosorInput ? parseInt(grosorInput.value, 10) : 3) * 4 : (grosorInput ? parseInt(grosorInput.value, 10) : 3);
+          ctx2.strokeStyle = color2;
+          ctx2.lineWidth = lw2;
+          ctx2.lineCap = 'round';
+          ctx2.lineJoin = 'round';
+          ctx2.beginPath();
+          ctx2.moveTo(pizarraCurrentStroke[pizarraCurrentStroke.length - 2].x, pizarraCurrentStroke[pizarraCurrentStroke.length - 2].y);
+          ctx2.lineTo(wpt.x, wpt.y);
+          ctx2.stroke();
+          ctx2.restore();
+        }
+      };
+
+      const endDraw = (e) => {
+        e.preventDefault();
+        if (pizarraHerramienta === 'mano') {
+          pizarraPanStart = null;
+          canvas.style.cursor = 'grab';
+          return;
+        }
+        if (!pizarraDibujando) return;
+        pizarraDibujando = false;
+        if (esFiguraTool() && pizarraShapeStart) {
+          var pt = pizarraCoords(e);
+          var wpt = pizarraScreenToWorld(pt.x, pt.y);
+          var color = colorInput ? colorInput.value : '#e0e7ff';
+          var lw = grosorInput ? parseInt(grosorInput.value, 10) : 3;
+          var stroke = { tool: pizarraHerramienta, color: color, lineWidth: lw, start: { x: pizarraShapeStart.x, y: pizarraShapeStart.y }, end: { x: wpt.x, y: wpt.y } };
+          pizarraStrokesLocal.push(stroke);
+          if (socket && socket.connected) socket.emit('pizarra-stroke', stroke);
+          pizarraShapeStart = null;
+        } else if (pizarraCurrentStroke.length >= 2) {
+          var color = pizarraHerramienta === 'goma' ? '#0f172a' : (colorInput ? colorInput.value : '#e0e7ff');
+          var lw = pizarraHerramienta === 'goma' ? (grosorInput ? parseInt(grosorInput.value, 10) : 3) * 4 : (grosorInput ? parseInt(grosorInput.value, 10) : 3);
+          var stroke = { tool: pizarraHerramienta, color: color, lineWidth: lw, points: pizarraCurrentStroke.slice() };
+          pizarraStrokesLocal.push(stroke);
+          if (socket && socket.connected) socket.emit('pizarra-stroke', stroke);
+          pizarraCurrentStroke = [];
+        }
+      };
+
+      canvas.removeEventListener('mousedown', canvas._pizarraStart);
+      canvas.removeEventListener('mousemove', canvas._pizarraMove);
+      canvas.removeEventListener('mouseup', canvas._pizarraEnd);
+      canvas.removeEventListener('mouseleave', canvas._pizarraEnd);
+      canvas.removeEventListener('touchstart', canvas._pizarraStartT, { passive: false });
+      canvas.removeEventListener('touchmove', canvas._pizarraMoveT, { passive: false });
+      canvas.removeEventListener('touchend', canvas._pizarraEndT, { passive: false });
+      canvas._pizarraStart = startDraw;
+      canvas._pizarraMove = moveDraw;
+      canvas._pizarraEnd = endDraw;
+      canvas._pizarraStartT = (e) => startDraw(e);
+      canvas._pizarraMoveT = (e) => moveDraw(e);
+      canvas._pizarraEndT = (e) => endDraw(e);
+      canvas.addEventListener('mousedown', startDraw);
+      canvas.addEventListener('mousemove', moveDraw);
+      canvas.addEventListener('mouseup', endDraw);
+      canvas.addEventListener('mouseleave', endDraw);
+      canvas.addEventListener('touchstart', canvas._pizarraStartT, { passive: false });
+      canvas.addEventListener('touchmove', canvas._pizarraMoveT, { passive: false });
+      canvas.addEventListener('touchend', canvas._pizarraEndT, { passive: false });
+
+      var wheelZoom = function(e) {
+        e.preventDefault();
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        var cx = (e.clientX - rect.left) * scaleX;
+        var cy = (e.clientY - rect.top) * scaleY;
+        var factor = e.deltaY > 0 ? 0.9 : 1.1;
+        var newZoom = Math.max(0.25, Math.min(4, pizarraZoom * factor));
+        var wx = (cx - pizarraPanX) / pizarraZoom;
+        var wy = (cy - pizarraPanY) / pizarraZoom;
+        pizarraPanX = cx - wx * newZoom;
+        pizarraPanY = cy - wy * newZoom;
+        pizarraZoom = newZoom;
+        var zv = document.getElementById('pizarra-zoom-val');
+        if (zv) zv.textContent = Math.round(pizarraZoom * 100) + '%';
+        pizarraRedraw();
+      };
+      canvas.addEventListener('wheel', wheelZoom, { passive: false });
+    }
+
+    window.addEventListener('resize', () => {
+      if (pizarraAbierta) pizarraResize();
+    });
 
   </script>  
   <script>
@@ -4613,6 +5582,32 @@ document.addEventListener("keydown", function(e) {
         
         // Si el editor ya está abierto, proceder directamente
         navegarAPosicionInvitada(tabId, line, ch, usuario, color);
+      });
+
+      // Pizarra colaborativa
+      socket.on('pizarra-state', (data) => {
+        if (typeof pizarraStrokesLocal !== 'undefined') {
+          pizarraStrokesLocal = Array.isArray(data.strokes) ? data.strokes : [];
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
+      });
+      socket.on('pizarra-stroke', (data) => {
+        if (typeof pizarraStrokesLocal !== 'undefined' && data && data.points && data.points.length >= 2) {
+          pizarraStrokesLocal.push(data);
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
+      });
+      socket.on('pizarra-clear', () => {
+        if (typeof pizarraStrokesLocal !== 'undefined') {
+          pizarraStrokesLocal = [];
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
+      });
+      socket.on('pizarra-undo', () => {
+        if (typeof pizarraStrokesLocal !== 'undefined' && pizarraStrokesLocal.length > 0) {
+          pizarraStrokesLocal.pop();
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
       });
 
       socket.on('disconnect', () => {
