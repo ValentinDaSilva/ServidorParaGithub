@@ -655,6 +655,29 @@
       background: rgba(255, 255, 255, 0.2);
     }
 
+    .usuarios-header-buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-left: 1rem;
+    }
+
+    #cerrar-sesion-btn {
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #cerrar-sesion-btn:hover {
+      background: rgba(239, 68, 68, 0.35);
+      color: #fff;
+    }
+
     #contenido-usuarios {
       margin-top: 0.5rem;
     }
@@ -1504,6 +1527,19 @@
       <button onclick="conectarUsuario()">Conectar</button>
     </div>
   </div>
+  <script>
+    (function(){
+      try {
+        const d = localStorage.getItem('correoUsuario');
+        if (d) {
+          const o = JSON.parse(d);
+          if (o && o.correo && o.expiracion && Date.now() < o.expiracion) {
+            document.getElementById('modal-usuario').style.display = 'none';
+          }
+        }
+      } catch(e){}
+    })();
+  </script>
 
   <!-- Modal de espera de reconexión -->
   <div id="modal-reconexion">
@@ -1532,7 +1568,10 @@
   <div id="usuarios-conectados" style="display: none;">
     <div id="usuarios-header">
       <h3>👥 Usuarios conectados</h3>
-      <button id="minimizar-usuarios-btn" title="Minimizar/Maximizar">▼</button>
+      <div class="usuarios-header-buttons">
+        <button id="cerrar-sesion-btn" title="Cerrar sesión y borrar datos guardados">Cerrar sesión</button>
+        <button id="minimizar-usuarios-btn" title="Minimizar/Maximizar">▼</button>
+      </div>
     </div>
     <div id="contenido-usuarios">
       <div class="toggle-cursos">
@@ -2356,16 +2395,31 @@
 
   // ========== GESTIÓN DE ARCHIVO SELECCIONADO EN LOCALSTORAGE ==========
   const ARCHIVO_SELECCIONADO_KEY = 'archivoSeleccionado';
-  const EXPIRACION_ARCHIVO = 30 * 60 * 1000; // 30 minutos en milisegundos
+  const EXPIRACION_ARCHIVO = 2 * 60 * 60 * 1000; // 2 horas en milisegundos
   
-  // Guardar archivo seleccionado con expiración de 30 minutos
-  function guardarArchivoSeleccionado(nombreArchivo, serverURL) {
+  // Guardar archivo seleccionado con expiración de 2 horas (indice opcional)
+  function guardarArchivoSeleccionado(nombreArchivo, serverURL, indiceGuardar) {
+    const datosGuardados = obtenerArchivoSeleccionado();
+    const indiceActual = indiceGuardar !== undefined ? indiceGuardar : (datosGuardados ? datosGuardados.indice : 0);
     const datos = {
       nombreArchivo: nombreArchivo,
       serverURL: serverURL,
+      indice: indiceActual,
       expiracion: Date.now() + EXPIRACION_ARCHIVO
     };
     localStorage.setItem(ARCHIVO_SELECCIONADO_KEY, JSON.stringify(datos));
+  }
+  
+  // Actualizar índice en el archivo guardado (sin cambiar expiración)
+  function actualizarIndiceEnArchivoGuardado(indiceVal) {
+    try {
+      const datosStr = localStorage.getItem(ARCHIVO_SELECCIONADO_KEY);
+      if (!datosStr) return;
+      const datos = JSON.parse(datosStr);
+      if (Date.now() > datos.expiracion) return;
+      datos.indice = indiceVal;
+      localStorage.setItem(ARCHIVO_SELECCIONADO_KEY, JSON.stringify(datos));
+    } catch (e) {}
   }
   
   // Obtener archivo seleccionado guardado (si no ha expirado)
@@ -2384,7 +2438,8 @@
       
       return {
         nombreArchivo: datos.nombreArchivo,
-        serverURL: datos.serverURL
+        serverURL: datos.serverURL,
+        indice: typeof datos.indice === 'number' ? datos.indice : 0
       };
     } catch (error) {
       console.error('Error al obtener archivo seleccionado:', error);
@@ -2410,6 +2465,10 @@
   const archivoGuardado = obtenerArchivoSeleccionado();
   if (archivoGuardado) {
     console.log(`📂 Archivo guardado encontrado: ${archivoGuardado.nombreArchivo} desde ${archivoGuardado.serverURL}`);
+    // Restaurar índice guardado
+    if (typeof archivoGuardado.indice === 'number' && archivoGuardado.indice >= 0) {
+      sessionStorage.setItem("indice", archivoGuardado.indice);
+    }
     // Inicializar nombreArchivoActual antes de cargar
     nombreArchivoActual = archivoGuardado.nombreArchivo;
     cargarArchivoSeleccionado(archivoGuardado.nombreArchivo, archivoGuardado.serverURL)
@@ -2424,7 +2483,7 @@
         if(inputArchivo) inputArchivo.style.display = "none";
         if(contenedorCargaManual) contenedorCargaManual.style.display = "block";
       });
-  } else if (confirm("¿Intentar cargar los ejercicios automáticamente desde el servidor?")) {
+  } else if (true) {
     cargarEjerciciosDesdeServidor()
       .then(() => {
         if(inputArchivo) inputArchivo.style.display = "none";
@@ -2542,7 +2601,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (btnSiguiente) btnSiguiente.style.display = "inline-block";
       var btnIniciarEl = document.querySelector('button[onclick="iniciar()"]');
       if (btnIniciarEl) btnIniciarEl.outerHTML = '<button onclick="anterior()">Anterior</button>';
-       if (!skipConfirm && confirm("¿Querés pegar automáticamente tu código al abrir la validacion?")) {
+       if (!skipConfirm) {
         if (navigator.clipboard && navigator.clipboard.readText) {
           navigator.clipboard.readText().catch(() => {});
         }
@@ -2567,6 +2626,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('solucion').style.display = "none";
         document.querySelector('button[onclick="siguiente()"]').style.display = "none";
         sessionStorage.setItem("indice", indice);
+        if (typeof actualizarIndiceEnArchivoGuardado === 'function') actualizarIndiceEnArchivoGuardado(indice);
         // Sincronizar con el servidor
         sincronizarIndiceEjercicio(indice);
       }
@@ -2597,6 +2657,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById('input-ejercicio').value = indice + 1;
         document.getElementById('total-ejercicios').innerHTML = ejercicios.length;
         sessionStorage.setItem("indice", indice);
+        if (typeof actualizarIndiceEnArchivoGuardado === 'function') actualizarIndiceEnArchivoGuardado(indice);
         // Sincronizar con el servidor
         sincronizarIndiceEjercicio(indice);
       }
@@ -2604,17 +2665,20 @@ window.addEventListener("DOMContentLoaded", async () => {
   
     function mostrarSolucion() {
       if (indice >= 0 && indice < ejercicios.length) {
-        const ahora = new Date();
-        const horas = String(ahora.getHours()).padStart(2, '0');
-        const minutos = String(ahora.getMinutes()).padStart(2, '0');
-        const ejercicioNumero = (indice + 1).toString();
-        const contrasenaEsperada = ejercicioNumero + horas + minutos;
+        // Modo profesor no requiere contraseña
+        if (!modoProfesor) {
+          const ahora = new Date();
+          const horas = String(ahora.getHours()).padStart(2, '0');
+          const minutos = String(ahora.getMinutes()).padStart(2, '0');
+          const ejercicioNumero = (indice + 1).toString();
+          const contrasenaEsperada = ejercicioNumero + horas + minutos;
   
-        const ingreso = prompt(`Para ver la solución del ejercicio ${ejercicioNumero}, ingresá la contraseña:`);
+          const ingreso = prompt(`Para ver la solución del ejercicio ${ejercicioNumero}, ingresá la contraseña:`);
   
-        if (ingreso !== contrasenaEsperada) {
-          alert("Contraseña incorrecta. Intentá de nuevo.");
-          return;
+          if (ingreso !== contrasenaEsperada) {
+            alert("Contraseña incorrecta. Intentá de nuevo.");
+            return;
+          }
         }
   
         const solucion = ejercicios[indice].solucion;
@@ -2637,7 +2701,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 inputEjercicio.addEventListener("change", () => {
   const nuevo = parseInt(inputEjercicio.value, 10);
   
-  if(!admin){
+  if(!admin && !modoProfesor){
     alert("Solo el profesor puede adelantar ejercicios");
     return ;
   }
@@ -3471,11 +3535,7 @@ function toggleEditor() {
   const entradasUsuario = input.trim().split(/\s+/).filter(e => e.length > 0);
   const totalEntradasUsuario = entradasUsuario.length;
 
-  // 3. Validar
-  if (totalEntradasEsperadas > 0 && totalEntradasUsuario !== totalEntradasEsperadas) {
-    alert(`⚠️ Advertencia: el código espera ${totalEntradasEsperadas} entradas, pero se ingresaron ${totalEntradasUsuario}.
-Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejecutará igual.`);
-  }
+  
 
   // Mostrar mensaje de ejecución
   outputContent.textContent = "Ejecutando...";
@@ -3692,30 +3752,30 @@ Esto puede causar errores si las entradas son insuficientes o sobran.\n\nSe ejec
         console.log(caso.entrada, i);
         return compilarConReintentos(codigoUsuario, caso.entrada)
         .then(data => {
-          let salidaObtenida = data.output || "";
-          let salidaEsperada = caso.salida || "";
-          console.log("Salida obtenida (original):", salidaObtenida);
-          console.log("Salida esperada (original):", salidaEsperada);
+          const salidaObtenidaOriginal = data.output || "";
+          const salidaEsperadaOriginal = caso.salida || "";
+          console.log("Salida obtenida (original):", salidaObtenidaOriginal);
+          console.log("Salida esperada (original):", salidaEsperadaOriginal);
           
-          // Función para normalizar: eliminar TODOS los espacios en blanco (espacios, tabs, saltos de línea, etc.)
+          // Función para normalizar solo para la comparación (eliminar espacios, saltos de línea, etc.)
           const normalizar = str => {
             if (!str) return "";
-            // Eliminar todos los caracteres de espacio en blanco (espacios, tabs, \n, \r, etc.)
             return str.replace(/\s+/g, "");
           };
           
-          salidaObtenida = normalizar(salidaObtenida);
-          salidaEsperada = normalizar(salidaEsperada);
+          const salidaObtenidaNorm = normalizar(salidaObtenidaOriginal);
+          const salidaEsperadaNorm = normalizar(salidaEsperadaOriginal);
           
-          console.log("Salida obtenida (normalizada):", salidaObtenida);
-          console.log("Salida esperada (normalizada):", salidaEsperada);
+          console.log("Salida obtenida (normalizada):", salidaObtenidaNorm);
+          console.log("Salida esperada (normalizada):", salidaEsperadaNorm);
   
-          if (salidaObtenida !== salidaEsperada) {
+          if (salidaObtenidaNorm !== salidaEsperadaNorm) {
+            // Guardar los valores ORIGINALES para mostrarlos en la interfaz tal cual
             errores.push({
               indice: i + 1,
               entrada: caso.entrada,
-              esperado: salidaEsperada,
-              obtenido: salidaObtenida
+              esperado: salidaEsperadaOriginal,
+              obtenido: salidaObtenidaOriginal
             });
             console.log("la salida fue distinta");
           } else console.log("las salidas coinciden");
@@ -4808,7 +4868,7 @@ document.addEventListener("keydown", function(e) {
     
     // ========== GESTIÓN DE CORREO DE USUARIO EN LOCALSTORAGE ==========
     const CORREO_USUARIO_KEY = 'correoUsuario';
-    const EXPIRACION_CORREO = 30 * 60 * 1000; // 30 minutos en milisegundos
+    const EXPIRACION_CORREO = 2 * 60 * 60 * 1000; // 2 horas en milisegundos
     
     // Validar formato de correo
     function validarCorreo(correo) {
@@ -4856,6 +4916,25 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
+    // Cerrar sesión: borrar todos los datos guardados y recargar
+    function cerrarSesion() {
+      limpiarCorreoUsuario();
+      if (typeof limpiarArchivoSeleccionado === 'function') limpiarArchivoSeleccionado();
+      sessionStorage.removeItem('indice');
+      sessionStorage.removeItem('indiceServidor');
+      sessionStorage.removeItem('nombreArchivoIndiceServidor');
+      sessionStorage.removeItem('archivoEjercicios');
+      if (typeof ARCHIVO_SELECCIONADO_KEY !== 'undefined') {
+        localStorage.removeItem(ARCHIVO_SELECCIONADO_KEY);
+      } else {
+        localStorage.removeItem('archivoSeleccionado');
+      }
+      if (typeof socket !== 'undefined' && socket && socket.connected) {
+        socket.disconnect();
+      }
+      window.location.reload();
+    }
+    
     // Cargar correo guardado al iniciar la página y conectar automáticamente
     function cargarCorreoGuardado() {
       const correoGuardado = obtenerCorreoUsuario();
@@ -4871,13 +4950,17 @@ document.addEventListener("keydown", function(e) {
       }
     }
     
-    // Listener para Alt + S para limpiar correo guardado y archivo seleccionado
+    // Listener para Alt + S para cerrar sesión
     document.addEventListener('keydown', (e) => {
       if (e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        limpiarCorreoUsuario();
-        localStorage.removeItem('archivoSeleccionado');
-        alert('Correo de usuario y archivo seleccionado borrados. Podés ingresar un nuevo correo y seleccionar un nuevo archivo.');
+        if (typeof cerrarSesion === 'function') {
+          cerrarSesion();
+        } else {
+          limpiarCorreoUsuario();
+          localStorage.removeItem('archivoSeleccionado');
+          alert('Correo de usuario y archivo seleccionado borrados. Recargá la página.');
+        }
       }
     });
     
@@ -5069,6 +5152,13 @@ document.addEventListener("keydown", function(e) {
       cargarCorreoGuardado();
       // Cargar correos registrados para el autocompletado
       cargarCorreosRegistrados();
+      // Botón cerrar sesión
+      const btnCerrarSesion = document.getElementById('cerrar-sesion-btn');
+      if (btnCerrarSesion) {
+        btnCerrarSesion.addEventListener('click', () => {
+          if (typeof cerrarSesion === 'function') cerrarSesion();
+        });
+      }
       // Configurar autocompletado del input de correo
       configurarAutocompletadoCorreo();
       // Toggle modo profesor
@@ -7542,7 +7632,14 @@ document.addEventListener("keydown", function(e) {
       const toggle = document.getElementById('toggle-colaboracion');
       
       if (nuevoEstado) {
-        // Intentando activar - pedir contraseña
+        // Intentando activar - modo profesor no requiere contraseña
+        if (modoProfesor) {
+          permitirColaboracion = true;
+          if (toggle) toggle.classList.add('active');
+          actualizarEstadoSoloLecturaTodos();
+          actualizarEstadoVisualPestañas();
+          return;
+        }
         if (socket && socket.connected) {
           // Pedir contraseña al usuario
           const contraseñaIngresada = prompt('Ingresá la contraseña para activar la colaboración:');
