@@ -1524,11 +1524,19 @@
   <div id="modal-usuario">
     <div class="contenido">
       <h2>Editor Multiusuario</h2>
-      <p>Ingresá tu correo para comenzar</p>
-      <div style="position: relative; display: inline-block; width: 100%;">
-        <input type="email" id="input-usuario" placeholder="tu@correo.com" autocomplete="off" />
-        <div id="sugerencias-correo" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30,41,59,0.98); border: 1px solid rgba(99,102,241,0.3); border-radius: 10px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.4); margin-top: 8px; color: white;"></div>
+      <p id="modal-usuario-texto">Ingresá tu nombre y correo para comenzar</p>
+      <div id="modal-usuario-campos">
+        <div style="margin-bottom: 12px;">
+          <label for="input-nombre" style="display: block; margin-bottom: 4px; color: #94a3b8;">Nombre (aparecerá en la lista de usuarios)</label>
+          <input type="text" id="input-nombre" placeholder="Tu nombre" autocomplete="off" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(99,102,241,0.3); background: rgba(30,41,59,0.8); color: white;" />
+        </div>
+        <div style="position: relative; display: inline-block; width: 100%;">
+          <label for="input-usuario" style="display: block; margin-bottom: 4px; color: #94a3b8;">Correo (para guardar tu progreso)</label>
+          <input type="email" id="input-usuario" placeholder="tu@correo.com" autocomplete="off" />
+          <div id="sugerencias-correo" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(30,41,59,0.98); border: 1px solid rgba(99,102,241,0.3); border-radius: 10px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.4); margin-top: 8px; color: white;"></div>
+        </div>
       </div>
+      <p id="modal-usuario-profesor-texto" style="display: none; color: #94a3b8; margin: 12px 0;">Conectar como <strong>Profesor</strong> (no se pide nombre ni correo; no se guarda progreso)</p>
       <div class="toggle-cursos">
         <label for="toggle-modo-profesor">Modo profesor (control de clase)</label>
         <div class="toggle-switch" id="toggle-modo-profesor" title="Activar para acceder al menú de profesor"></div>
@@ -1943,11 +1951,8 @@
         // Cambiar a la hoja propia encontrada
         cambiarPestaña(hojaPropiaEncontrada);
       } else {
-        // No tiene ninguna hoja propia, crear una nueva
-        const nombre = `Mi hoja ${documentosDisponibles.size + 1}`;
-        socket.emit('crear-pestaña', { nombre });
-        // El cambio de pestaña se hará automáticamente cuando se reciba el evento 'pestaña-creada'
-        // porque el servidor envía creadorSocketId y el cliente verifica si es el creador
+        // No tiene ninguna hoja propia, crear una nueva (mismo nombre por defecto que al entrar)
+        socket.emit('crear-pestaña', { nombre: 'Sin título' });
       }
     }
     
@@ -4885,10 +4890,11 @@ document.addEventListener("keydown", function(e) {
       return regex.test(correo);
     }
     
-    // Guardar correo de usuario con expiración de 30 minutos
-    function guardarCorreoUsuario(correo) {
+    // Guardar correo y nombre de usuario con expiración
+    function guardarCorreoUsuario(correo, nombre) {
       const datos = {
         correo: correo,
+        nombre: nombre || (correo ? obtenerNombreUsuario(correo) : ''),
         expiracion: Date.now() + EXPIRACION_CORREO
       };
       localStorage.setItem(CORREO_USUARIO_KEY, JSON.stringify(datos));
@@ -4896,33 +4902,45 @@ document.addEventListener("keydown", function(e) {
     
     // Obtener correo de usuario guardado (si no ha expirado)
     function obtenerCorreoUsuario() {
+      const datos = obtenerDatosUsuarioGuardado();
+      return datos ? datos.correo : null;
+    }
+    
+    // Obtener nombre de usuario guardado (si no ha expirado)
+    function obtenerNombreUsuarioGuardado() {
+      const datos = obtenerDatosUsuarioGuardado();
+      return datos ? datos.nombre : null;
+    }
+    
+    // Obtener datos completos (correo, nombre) guardados, o null si expiraron
+    function obtenerDatosUsuarioGuardado() {
       try {
         const datosStr = localStorage.getItem(CORREO_USUARIO_KEY);
         if (!datosStr) return null;
         
         const datos = JSON.parse(datosStr);
         
-        // Verificar si ha expirado
         if (Date.now() > datos.expiracion) {
           localStorage.removeItem(CORREO_USUARIO_KEY);
           return null;
         }
         
-        return datos.correo;
+        return { correo: datos.correo, nombre: datos.nombre || (datos.correo ? datos.correo.split('@')[0] : '') };
       } catch (error) {
-        console.error('Error al obtener correo de usuario:', error);
+        console.error('Error al obtener datos de usuario:', error);
         localStorage.removeItem(CORREO_USUARIO_KEY);
         return null;
       }
     }
     
-    // Limpiar correo de usuario guardado
+    // Limpiar correo y nombre de usuario guardados
     function limpiarCorreoUsuario() {
       localStorage.removeItem(CORREO_USUARIO_KEY);
+      sessionStorage.removeItem('modoProfesorReconexion');
       const inputUsuario = document.getElementById('input-usuario');
-      if (inputUsuario) {
-        inputUsuario.value = '';
-      }
+      const inputNombre = document.getElementById('input-nombre');
+      if (inputUsuario) inputUsuario.value = '';
+      if (inputNombre) inputNombre.value = '';
     }
     
     // Cerrar sesión: borrar todos los datos guardados y recargar
@@ -4944,18 +4962,17 @@ document.addEventListener("keydown", function(e) {
       window.location.reload();
     }
     
-    // Cargar correo guardado al iniciar la página y conectar automáticamente
+    // Cargar correo y nombre guardados al iniciar la página y conectar automáticamente
     function cargarCorreoGuardado() {
-      const correoGuardado = obtenerCorreoUsuario();
-      if (correoGuardado) {
+      const datos = obtenerDatosUsuarioGuardado();
+      if (datos && datos.correo) {
         const inputUsuario = document.getElementById('input-usuario');
-        if (inputUsuario) {
-          inputUsuario.value = correoGuardado;
-          // Conectar automáticamente después de un pequeño delay para asegurar que el DOM esté listo
-          setTimeout(() => {
-            conectarUsuario();
-          }, 100);
-        }
+        const inputNombre = document.getElementById('input-nombre');
+        if (inputUsuario) inputUsuario.value = datos.correo;
+        if (inputNombre) inputNombre.value = datos.nombre || '';
+        setTimeout(() => {
+          conectarUsuario();
+        }, 100);
       }
     }
     
@@ -5170,13 +5187,24 @@ document.addEventListener("keydown", function(e) {
       }
       // Configurar autocompletado del input de correo
       configurarAutocompletadoCorreo();
-      // Toggle modo profesor
+      // Toggle modo profesor: alternar visibilidad de campos nombre/correo vs texto "Conectar como Profesor"
       const toggleProfesor = document.getElementById('toggle-modo-profesor');
+      const modalCampos = document.getElementById('modal-usuario-campos');
+      const modalTexto = document.getElementById('modal-usuario-texto');
+      const modalProfesorTexto = document.getElementById('modal-usuario-profesor-texto');
+      function actualizarVisibilidadModoProfesor() {
+        const esProfesor = toggleProfesor && toggleProfesor.classList.contains('active');
+        if (modalCampos) modalCampos.style.display = esProfesor ? 'none' : 'block';
+        if (modalTexto) modalTexto.style.display = esProfesor ? 'none' : 'block';
+        if (modalProfesorTexto) modalProfesorTexto.style.display = esProfesor ? 'block' : 'none';
+      }
       if (toggleProfesor && !toggleProfesor.hasAttribute('data-listener-added')) {
         toggleProfesor.addEventListener('click', () => {
           toggleProfesor.classList.toggle('active');
+          actualizarVisibilidadModoProfesor();
         });
         toggleProfesor.setAttribute('data-listener-added', 'true');
+        actualizarVisibilidadModoProfesor();
       }
     });
     
@@ -5201,18 +5229,28 @@ document.addEventListener("keydown", function(e) {
     }
     
     function conectarUsuario() {
-      const correoUsuario = document.getElementById('input-usuario').value.trim();
       const toggleProfesor = document.getElementById('toggle-modo-profesor');
       modoProfesor = toggleProfesor && toggleProfesor.classList.contains('active');
       
-      if (!correoUsuario) {
-        alert('Por favor ingresá tu correo');
-        return;
-      }
-      
-      if (!validarCorreo(correoUsuario)) {
-        alert('Por favor ingresá un correo válido');
-        return;
+      let datosUsuario;
+      if (modoProfesor) {
+        datosUsuario = { isProfesor: true, correo: null, nombre: 'Profesor' };
+      } else {
+        const correoUsuario = document.getElementById('input-usuario').value.trim();
+        const nombreUsuario = (document.getElementById('input-nombre') && document.getElementById('input-nombre').value.trim()) || '';
+        if (!nombreUsuario) {
+          alert('Por favor ingresá tu nombre');
+          return;
+        }
+        if (!correoUsuario) {
+          alert('Por favor ingresá tu correo');
+          return;
+        }
+        if (!validarCorreo(correoUsuario)) {
+          alert('Por favor ingresá un correo válido');
+          return;
+        }
+        datosUsuario = { isProfesor: false, correo: correoUsuario, nombre: nombreUsuario };
       }
 
       // Detectar automáticamente la URL del servidor basándose en dónde se carga la página
@@ -5266,11 +5304,10 @@ document.addEventListener("keydown", function(e) {
       
       console.log('🔗 URLs a intentar:', urlsToTry);
       
-      // Intentar conectarse a cada URL en orden hasta que una funcione
-      intentarConectar(urlsToTry, 0, correoUsuario);
+      intentarConectar(urlsToTry, 0, datosUsuario);
     }
 
-    function intentarConectar(urls, index, correoUsuario) {
+    function intentarConectar(urls, index, datosUsuario) {
       if (index >= urls.length) {
         console.error('❌ No se pudo conectar a ningún servidor después de intentar todas las URLs');
         const urlsIntentadas = urls.join('\n- ');
@@ -5289,26 +5326,23 @@ document.addEventListener("keydown", function(e) {
       const serverURL = urls[index];
       console.log(`🔌 Intentando conectar a servidor ${index + 1}/${urls.length}: ${serverURL}`);
       
-      // Crear nueva conexión socket con opciones mejoradas
       socket = io(serverURL, {
-        timeout: 10000, // Timeout de 10 segundos (aumentado)
-        reconnection: false, // Desactivar reconexión automática para poder intentar otra URL
-        transports: ['websocket', 'polling'], // Intentar websocket primero, luego polling como fallback
-        upgrade: true, // Permitir upgrade de polling a websocket
+        timeout: 10000,
+        reconnection: false,
+        transports: ['websocket', 'polling'],
+        upgrade: true,
         rememberUpgrade: false
       });
 
       let connectionEstablished = false;
 
-      // Timeout para detectar si la conexión falla
       const connectionTimeout = setTimeout(() => {
         if (!connectionEstablished && socket && !socket.connected) {
           console.log(`⏱️ Timeout: Conexión a ${serverURL} no respondió en 10 segundos, intentando siguiente URL...`);
           socket.removeAllListeners();
           socket.disconnect();
           socket = null;
-          // Intentar siguiente URL
-          intentarConectar(urls, index + 1, correoUsuario);
+          intentarConectar(urls, index + 1, datosUsuario);
         }
       }, 10000);
 
@@ -5317,27 +5351,26 @@ document.addEventListener("keydown", function(e) {
         clearTimeout(connectionTimeout);
         console.log('✅ ¡Conectado exitosamente al servidor:', serverURL, '!');
         
-        // Registrar listeners solo una vez cuando la conexión sea exitosa
         if (!socketListenersRegistrados) {
-          registrarSocketListeners(correoUsuario);
+          registrarSocketListeners(datosUsuario);
           socketListenersRegistrados = true;
         }
         
-        // Iniciar verificación periódica de conexión
         iniciarVerificacionConexion();
         
-        // Obtener el nombre del archivo actual si está disponible
         const archivoGuardado = obtenerArchivoSeleccionado();
         const nombreArchivoParaEnviar = nombreArchivoActual || (archivoGuardado ? archivoGuardado.nombreArchivo : null);
         
         socket.emit('usuario-join', { 
-          username: correoUsuario,
-          nombreArchivo: nombreArchivoParaEnviar
+          username: datosUsuario.isProfesor ? '__profesor__' : datosUsuario.correo,
+          displayName: datosUsuario.nombre,
+          nombreArchivo: nombreArchivoParaEnviar,
+          isProfesor: !!datosUsuario.isProfesor
         });
       });
 
       socket.on('connect_error', (error) => {
-        if (connectionEstablished) return; // Ignorar errores si ya se estableció la conexión
+        if (connectionEstablished) return;
         
         clearTimeout(connectionTimeout);
         console.log(`❌ Error conectando a ${serverURL}:`, error.message);
@@ -5347,13 +5380,11 @@ document.addEventListener("keydown", function(e) {
         socket.disconnect();
         socket = null;
         
-        // Resetear flag de listeners si la conexión falla completamente
         if (index + 1 >= urls.length) {
           socketListenersRegistrados = false;
         } else {
-          // Intentar siguiente URL después de un pequeño delay
           setTimeout(() => {
-            intentarConectar(urls, index + 1, correoUsuario);
+            intentarConectar(urls, index + 1, datosUsuario);
           }, 500);
         }
       });
@@ -5380,15 +5411,18 @@ document.addEventListener("keydown", function(e) {
     }
 
     // Función para registrar todos los event listeners de socket (solo una vez)
-    function registrarSocketListeners(correoUsuario) {
+    function registrarSocketListeners(datosUsuario) {
       if (!socket) return;
 
       socket.on('usuario-confirmado', (data) => {
-        miUsuario = data.username;
+        miUsuario = data.displayName != null ? data.displayName : data.username;
         miColor = data.color;
         
-        // Guardar correo de usuario con expiración de 30 minutos
-        guardarCorreoUsuario(data.username);
+        if (data.isProfesor) {
+          sessionStorage.setItem('modoProfesorReconexion', '1');
+        } else {
+          guardarCorreoUsuario(data.username, data.displayName);
+        }
         
         // Si hay un índice de ejercicio guardado, solo usarlo si corresponde al archivo actual
         if (data.indiceEjercicio !== undefined) {
@@ -5514,8 +5548,8 @@ document.addEventListener("keydown", function(e) {
             cambiarPestaña(data.documentos[0].tabId);
           }
         } else {
-          // Crear primera pestaña si no hay ninguna
-          crearNuevaPestaña();
+          // No hay hojas en el servidor: crear una por defecto "Sin título" sin preguntar
+          socket.emit('crear-pestaña', { nombre: 'Sin título' });
         }
         
         // Restaurar estado del editor (abierto/cerrado) después de inicializar todo
@@ -5837,49 +5871,45 @@ document.addEventListener("keydown", function(e) {
       });
 
       socket.on('documentos-actualizados', (documentos) => {
-        // Actualizar lista de documentos disponibles
-        documentos.forEach(doc => {
-          // Verificar si la pestaña ya existe en el DOM para evitar duplicados
-          const tabExisteEnDOM = document.querySelector(`.editor-tab[data-tab-id="${doc.tabId}"]`);
-          
-          if (!documentosDisponibles.has(doc.tabId) && !tabExisteEnDOM) {
-            documentosDisponibles.set(doc.tabId, doc);
-            crearPestañaUI(doc.tabId, doc.nombre, false);
-          } else {
-            // Actualizar información del documento (por si cambió el creador)
-            const docExistente = documentosDisponibles.get(doc.tabId);
-            if (docExistente) {
-              docExistente.creadorSocketId = doc.creadorSocketId;
-              docExistente.nombre = doc.nombre;
-              docExistente.codigo = doc.codigo;
-            }
-          }
-        });
-        
-        // Eliminar pestañas que ya no existen en el servidor
         const tabIdsServidor = new Set(documentos.map(doc => doc.tabId));
+        // Primero: eliminar localmente las pestañas que ya no están en el servidor
         documentosDisponibles.forEach((doc, tabId) => {
           if (!tabIdsServidor.has(tabId)) {
-            // Esta pestaña ya no existe en el servidor, eliminarla localmente
+            if (pestañaActiva === tabId) {
+              const otras = Array.from(editoresPorPestaña.keys()).filter(id => id !== tabId);
+              if (otras.length > 0) cambiarPestaña(otras[0]);
+            }
             const panel = document.querySelector(`.editor-panel[data-tab-id="${tabId}"]`);
             const tab = document.querySelector(`.editor-tab[data-tab-id="${tabId}"]`);
-            
             if (panel) panel.remove();
             if (tab) tab.remove();
-            
             const editorData = editoresPorPestaña.get(tabId);
             if (editorData && editorData.cursosRemotos) {
-              editorData.cursosRemotos.forEach(curso => {
-                if (curso.marker) curso.marker.clear();
-              });
+              editorData.cursosRemotos.forEach(curso => { if (curso.marker) curso.marker.clear(); });
             }
-            
             editoresPorPestaña.delete(tabId);
             documentosDisponibles.delete(tabId);
           }
         });
-        
-        // Actualizar estado visual de las pestañas
+        // Segundo: para cada doc del servidor, añadir si no existe o actualizar nombre/creador
+        documentos.forEach(doc => {
+          const tabEl = document.querySelector(`.editor-tab[data-tab-id="${doc.tabId}"]`);
+          const yaEnMapa = documentosDisponibles.has(doc.tabId);
+          if (!yaEnMapa && !tabEl) {
+            documentosDisponibles.set(doc.tabId, { ...doc, creadorSocketId: doc.creadorSocketId });
+            crearPestañaUI(doc.tabId, doc.nombre, false);
+          } else {
+            if (!documentosDisponibles.has(doc.tabId)) documentosDisponibles.set(doc.tabId, { ...doc });
+            const docLocal = documentosDisponibles.get(doc.tabId);
+            if (docLocal) {
+              docLocal.creadorSocketId = doc.creadorSocketId;
+              docLocal.nombre = doc.nombre;
+              docLocal.codigo = doc.codigo;
+            }
+            const nameSpan = tabEl ? tabEl.querySelector('.editor-tab-name') : null;
+            if (nameSpan && doc.nombre !== undefined) nameSpan.textContent = doc.nombre;
+          }
+        });
         actualizarEstadoVisualPestañas();
       });
 
@@ -6038,20 +6068,26 @@ document.addEventListener("keydown", function(e) {
         // Iniciar intentos automáticos de reconexión cada 3 segundos
         if (miUsuario) {
           intervaloReconexion = setInterval(() => {
-            // Solo intentar reconectar si el socket no está conectado y el modal está visible
             const modal = document.getElementById('modal-reconexion');
             if (modal && modal.style.display === 'flex' && (!socket || !socket.connected)) {
               console.log('🔄 Intentando reconectar automáticamente...');
-              // Obtener el correo de usuario guardado o usar el actual
-              const correoUsuario = obtenerCorreoUsuario() || miUsuario;
-              if (correoUsuario) {
-                // Simular el input para poder usar conectarUsuario
-                const inputUsuario = document.getElementById('input-usuario');
-                if (inputUsuario) {
-                  inputUsuario.value = correoUsuario;
+              const eraProfesor = sessionStorage.getItem('modoProfesorReconexion');
+              if (eraProfesor) {
+                const toggleProfesor = document.getElementById('toggle-modo-profesor');
+                if (toggleProfesor) {
+                  toggleProfesor.classList.add('active');
+                  if (typeof actualizarVisibilidadModoProfesor === 'function') actualizarVisibilidadModoProfesor();
                 }
-                // Reconectar
                 conectarUsuario();
+              } else {
+                const correoUsuario = obtenerCorreoUsuario() || miUsuario;
+                if (correoUsuario) {
+                  const inputUsuario = document.getElementById('input-usuario');
+                  const inputNombre = document.getElementById('input-nombre');
+                  if (inputUsuario) inputUsuario.value = correoUsuario;
+                  if (inputNombre) inputNombre.value = obtenerNombreUsuarioGuardado() || '';
+                  conectarUsuario();
+                }
               }
             } else if (socket && socket.connected) {
               // Si ya está conectado, detener los intentos
@@ -6157,9 +6193,7 @@ document.addEventListener("keydown", function(e) {
         alert('Debes estar conectado para crear una pestaña');
         return;
       }
-
-      const nombre = prompt('Nombre de la nueva pestaña:') || `Pestaña ${editoresPorPestaña.size + 1}`;
-      socket.emit('crear-pestaña', { nombre });
+      socket.emit('crear-pestaña', { nombre: 'Sin título' });
     }
 
     function crearPestañaUI(tabId, nombre, esActiva) {
@@ -6178,10 +6212,22 @@ document.addEventListener("keydown", function(e) {
       tabBtn.className = 'editor-tab' + (esActiva ? ' active' : '');
       tabBtn.setAttribute('data-tab-id', tabId);
       tabBtn.innerHTML = `
-        <span>${nombre}</span>
+        <span class="editor-tab-name" title="Doble clic para renombrar">${nombre}</span>
         <button class="editor-tab-close" data-tab-id="${tabId}">×</button>
       `;
-      
+      const nameSpan = tabBtn.querySelector('.editor-tab-name');
+      if (nameSpan) {
+        nameSpan.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const doc = documentosDisponibles.get(tabId);
+          const nombreActual = (doc && doc.nombre) || nameSpan.textContent || 'Sin título';
+          const nuevo = prompt('Nombre de la hoja:', nombreActual);
+          if (nuevo !== null && nuevo.trim() !== '' && socket && socket.connected) {
+            socket.emit('renombrar-pestaña', { tabId, nombre: nuevo.trim() });
+          }
+        });
+      }
       tabBtn.addEventListener('click', (e) => {
         if (e.target.classList.contains('editor-tab-close')) {
           e.stopPropagation();
@@ -6920,9 +6966,12 @@ document.addEventListener("keydown", function(e) {
       
       // Actualizar mapa de usuarios por socketId
       usuariosPorSocketId.clear();
+      const nombreParaLista = (u) => (u.displayName != null && u.displayName !== '') ? u.displayName : (obtenerNombreUsuario(u.username) || u.username);
+      
       usuarios.forEach(usuario => {
         usuariosPorSocketId.set(usuario.socketId, {
           username: usuario.username,
+          displayName: usuario.displayName,
           color: usuario.color,
           pestañaActiva: usuario.pestañaActiva,
           nombreArchivo: usuario.nombreArchivo || null,
@@ -6930,7 +6979,6 @@ document.addEventListener("keydown", function(e) {
         });
       });
       
-      // Actualizar selects del menú profesor (usuarios distintos a mí)
       const selectLink = document.getElementById('profesor-link-usuario');
       const selectForzar = document.getElementById('profesor-forzar-usuario');
       if (modoProfesor) {
@@ -6942,7 +6990,7 @@ document.addEventListener("keydown", function(e) {
               if (usuario.socketId !== socket.id) {
                 const opt = document.createElement('option');
                 opt.value = usuario.socketId;
-                opt.textContent = obtenerNombreUsuario(usuario.username) || usuario.username;
+                opt.textContent = nombreParaLista(usuario);
                 selectProfesor.appendChild(opt);
               }
             });
@@ -6951,19 +6999,18 @@ document.addEventListener("keydown", function(e) {
       }
       
       usuarios.forEach(usuario => {
-        // No mostrar nuestro propio usuario
         if (usuario.socketId === socket.id) return;
         
-        const nombreUsuario = obtenerNombreUsuario(usuario.username);
+        const nombreUsuario = nombreParaLista(usuario);
         
         const item = document.createElement('div');
         item.className = 'usuario-item';
         item.style.cursor = 'pointer';
-        item.title = usuario.pestañaActiva ? `Ir a ${usuario.username} (${documentosDisponibles.get(usuario.pestañaActiva)?.nombre || 'Pestaña'})` : `Usuario: ${usuario.username}`;
+        item.title = usuario.pestañaActiva ? `Ir a ${nombreUsuario} (${documentosDisponibles.get(usuario.pestañaActiva)?.nombre || 'Pestaña'})` : `Usuario: ${nombreUsuario}`;
         item.innerHTML = `
           <span class="usuario-color" style="background-color: ${usuario.color}"></span>
           <span class="usuario-nombre">${nombreUsuario}</span>
-          <span class="invitar-simbolo" title="Invitar a ${usuario.username} a mi posición" style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">📍</span>
+          <span class="invitar-simbolo" title="Invitar a ${nombreUsuario} a mi posición" style="margin-left: 8px; cursor: pointer; font-size: 1.2em; user-select: none;">📍</span>
         `;
         
         // Agregar evento de clic para navegar a la posición del usuario (en el nombre)

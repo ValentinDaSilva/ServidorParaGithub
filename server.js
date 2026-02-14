@@ -322,23 +322,25 @@ if (!fs.existsSync(tempDir)) {
   io.on('connection', (socket) => {
     console.log('Usuario conectado:', socket.id);
 
-    // Cuando un usuario se une con correo
+    // Cuando un usuario se une (con correo+nombre o como profesor)
     socket.on('usuario-join', (data) => {
-      const { username, nombreArchivo } = data; // username ahora es el correo, nombreArchivo es opcional
+      const { username, displayName, nombreArchivo, isProfesor } = data;
       const color = generarColorAleatorio();
+      const nombreParaLista = displayName != null ? displayName : (username || 'Usuario');
       
-      // Obtener el índice de ejercicio guardado para este correo y archivo específico
-      const indiceEjercicio = obtenerIndiceEjercicio(username, nombreArchivo);
+      // Profesor no guarda progreso en progreso-usuarios.json; alumnos sí (por correo)
+      const indiceEjercicio = isProfesor ? 0 : obtenerIndiceEjercicio(username, nombreArchivo);
       
       usuariosConectados.set(socket.id, { 
         username, 
+        displayName: nombreParaLista,
+        isProfesor: !!isProfesor,
         color, 
         pestañaActiva: null,
         nombreArchivo: nombreArchivo || null,
         indiceEjercicio: indiceEjercicio || 0
       });
       
-      // Enviar lista de documentos (pestañas) disponibles
       const listaDocumentos = Array.from(documentos.entries()).map(([tabId, doc]) => ({
         tabId,
         nombre: doc.nombre,
@@ -349,25 +351,27 @@ if (!fs.existsSync(tempDir)) {
 
       socket.emit('usuario-confirmado', {
         username,
+        displayName: nombreParaLista,
+        isProfesor: !!isProfesor,
         color,
         documentos: listaDocumentos,
-        indiceEjercicio: indiceEjercicio, // Enviar el índice guardado para este archivo
-        nombreArchivo: nombreArchivo // Enviar el nombre del archivo para verificar en el cliente
+        indiceEjercicio,
+        nombreArchivo: nombreArchivo || null
       });
 
-      // Notificar a todos los demás usuarios
       socket.broadcast.emit('usuario-conectado', {
         username,
+        displayName: nombreParaLista,
         color,
         socketId: socket.id,
         nombreArchivo: nombreArchivo || null,
         indiceEjercicio: indiceEjercicio || 0
       });
 
-      // Enviar lista de usuarios conectados con información completa
       const usuarios = Array.from(usuariosConectados.entries()).map(([socketId, usuario]) => ({
         socketId: socketId,
         username: usuario.username,
+        displayName: usuario.displayName != null ? usuario.displayName : usuario.username,
         color: usuario.color,
         pestañaActiva: usuario.pestañaActiva,
         nombreArchivo: usuario.nombreArchivo || null,
@@ -375,7 +379,7 @@ if (!fs.existsSync(tempDir)) {
       }));
       io.emit('usuarios-actualizados', usuarios);
 
-      console.log(`Usuario ${username} (${socket.id}) se unió al editor`);
+      console.log(`Usuario ${nombreParaLista} (${socket.id}) se unió al editor`);
     });
 
     // Cuando un usuario crea una nueva pestaña
@@ -428,7 +432,7 @@ if (!fs.existsSync(tempDir)) {
         io.emit('usuario-salio-pestaña', {
           tabId: tabIdAnterior,
           socketId: socket.id,
-          usuario: usuario.username
+          usuario: usuario.displayName != null ? usuario.displayName : usuario.username
         });
       }
 
@@ -475,7 +479,7 @@ if (!fs.existsSync(tempDir)) {
         if (userSocketId !== socket.id) {
           io.to(userSocketId).emit('usuario-unido-pestaña', {
             tabId,
-            usuario: usuario.username,
+            usuario: usuario.displayName != null ? usuario.displayName : usuario.username,
             color: usuario.color,
             socketId: socket.id
           });
@@ -492,10 +496,10 @@ if (!fs.existsSync(tempDir)) {
       }));
       io.emit('documentos-actualizados', listaDocumentos);
       
-      // IMPORTANTE: Actualizar y enviar lista de usuarios a todos cuando alguien cambia de pestaña
       const usuariosActualizados = Array.from(usuariosConectados.entries()).map(([socketId, usuarioData]) => ({
         socketId: socketId,
         username: usuarioData.username,
+        displayName: usuarioData.displayName != null ? usuarioData.displayName : usuarioData.username,
         color: usuarioData.color,
         pestañaActiva: usuarioData.pestañaActiva,
         nombreArchivo: usuarioData.nombreArchivo || null,
@@ -717,26 +721,26 @@ if (!fs.existsSync(tempDir)) {
       console.log(`Usuario ${usuarioInfo.username} (${socket.id}) desactivó la colaboración globalmente`);
     });
 
-    // Cuando un usuario actualiza su índice de ejercicio
+    // Cuando un usuario actualiza su índice de ejercicio (no se guarda para modo profesor)
     socket.on('actualizar-indice-ejercicio', (data) => {
       const usuarioInfo = usuariosConectados.get(socket.id);
       if (!usuarioInfo) return;
+      if (usuarioInfo.isProfesor) return; // Profesor no se persiste en progreso-usuarios.json
       
       const { indice, nombreArchivo } = data;
-      const correo = usuarioInfo.username; // El username es el correo
+      const correo = usuarioInfo.username;
       
       if (typeof indice === 'number' && indice >= 0) {
         actualizarIndiceEjercicio(correo, indice, nombreArchivo);
         
-        // Actualizar la información del usuario en el mapa
         usuarioInfo.nombreArchivo = nombreArchivo || null;
         usuarioInfo.indiceEjercicio = indice;
         usuariosConectados.set(socket.id, usuarioInfo);
         
-        // Notificar a todos los usuarios sobre la actualización
         const usuarios = Array.from(usuariosConectados.entries()).map(([socketId, usuario]) => ({
           socketId: socketId,
           username: usuario.username,
+          displayName: usuario.displayName != null ? usuario.displayName : usuario.username,
           color: usuario.color,
           pestañaActiva: usuario.pestañaActiva,
           nombreArchivo: usuario.nombreArchivo || null,
@@ -777,7 +781,6 @@ if (!fs.existsSync(tempDir)) {
       // Notificar a todos los usuarios EXCEPTO al que la eliminó (él ya la eliminó localmente)
       socket.broadcast.emit('pestaña-eliminada', { tabId });
 
-      // Actualizar lista de documentos (solo a los demás usuarios, el que eliminó ya sabe)
       const listaDocumentos = Array.from(documentos.entries()).map(([id, doc]) => ({
         tabId: id,
         nombre: doc.nombre,
@@ -785,9 +788,26 @@ if (!fs.existsSync(tempDir)) {
         usuariosActivos: Array.from(doc.usuariosActivos).length,
         creadorSocketId: doc.creadorSocketId
       }));
-      socket.broadcast.emit('documentos-actualizados', listaDocumentos);
+      io.emit('documentos-actualizados', listaDocumentos);
 
       console.log(`Pestaña ${tabId} eliminada por usuario ${socket.id}`);
+    });
+
+    // Renombrar pestaña
+    socket.on('renombrar-pestaña', (data) => {
+      const { tabId, nombre } = data;
+      const documento = documentos.get(tabId);
+      if (!documento || !nombre || typeof nombre !== 'string') return;
+      const nombreTrim = nombre.trim() || 'Sin título';
+      documento.nombre = nombreTrim;
+      const listaDocumentos = Array.from(documentos.entries()).map(([id, doc]) => ({
+        tabId: id,
+        nombre: doc.nombre,
+        codigo: doc.codigo,
+        usuariosActivos: Array.from(doc.usuariosActivos).length,
+        creadorSocketId: doc.creadorSocketId
+      }));
+      io.emit('documentos-actualizados', listaDocumentos);
     });
 
     // --- Pizarra colaborativa ---
@@ -864,10 +884,10 @@ if (!fs.existsSync(tempDir)) {
           username: usuario.username
         });
 
-        // Enviar lista actualizada con información completa
         const usuarios = Array.from(usuariosConectados.entries()).map(([socketId, usuario]) => ({
           socketId: socketId,
           username: usuario.username,
+          displayName: usuario.displayName != null ? usuario.displayName : usuario.username,
           color: usuario.color,
           pestañaActiva: usuario.pestañaActiva,
           nombreArchivo: usuario.nombreArchivo || null,
@@ -875,12 +895,13 @@ if (!fs.existsSync(tempDir)) {
         }));
         io.emit('usuarios-actualizados', usuarios);
 
-        // Actualizar lista de documentos
+        // Actualizar lista de documentos (incluir creadorSocketId para que los clientes no pierdan el dato)
         const listaDocumentos = Array.from(documentos.entries()).map(([id, doc]) => ({
           tabId: id,
           nombre: doc.nombre,
           codigo: doc.codigo,
-          usuariosActivos: Array.from(doc.usuariosActivos).length
+          usuariosActivos: Array.from(doc.usuariosActivos).length,
+          creadorSocketId: doc.creadorSocketId
         }));
         io.emit('documentos-actualizados', listaDocumentos);
       }
