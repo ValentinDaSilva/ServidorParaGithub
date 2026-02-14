@@ -2010,6 +2010,9 @@ void cargarVector(int[], int);
 
 int main(){
     int v[TF], TL;
+    cin>>TL;
+    cargarVector(v, TL);
+    mostrarVector(v, TL);
     return 0;
 }
 
@@ -2019,10 +2022,9 @@ int main(){
 
 
 void cargarVector(int v[], int TL){
-    int minimo = maximo / 10; // ejemplo: si maximo = 100 → minimo = 10
     
     for(int i = 0; i < TL; i++){
-        v[i] = minimo + rand() % (maximo - minimo);
+        cin>>v[i];
     }
 }
 
@@ -3336,7 +3338,8 @@ document.addEventListener("keydown", function(e) {
         // Solo aplicar si el código está vacío o es una de las plantillas
         if (codigoActual.trim() === '' || 
             codigoActual === PLANTILLA_CPP || 
-            codigoActual === PLANTILLA_VECTOR || 
+            codigoActual === PLANTILLA_VECTORTECLADO || 
+            codigoActual === PLANTILLA_VECTORRANDOM || 
             codigoActual === PLANTILLA_MATRIZ || 
             codigoActual === PLANTILLA_LISTA_ENLAZADA) {
           editorActivo.setValue(obtenerPlantillaActual());
@@ -4259,7 +4262,7 @@ document.addEventListener("keydown", function(e) {
             sincronizando = true;
             editorData.editorInstance.setValue(codigoServidor);
             editorData.codigo = codigoServidor;
-          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTOR || codigoActual === PLANTILLA_MATRIZ || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
+          } else if (codigoServidor.trim() === '' && (codigoActual.trim() === '' || codigoActual === PLANTILLA_CPP || codigoActual === PLANTILLA_VECTORTECLADO || codigoActual === PLANTILLA_VECTORRANDOM || codigoActual === PLANTILLA_MATRIZ || codigoActual === PLANTILLA_LISTA_ENLAZADA)) {
             // Solo establecer plantilla si el servidor está vacío Y el editor también está vacío o tiene plantilla
             sincronizando = true;
             editorData.editorInstance.setValue(obtenerPlantillaActual());
@@ -4320,23 +4323,47 @@ document.addEventListener("keydown", function(e) {
         // Evitar sincronización circular
         if (data.socketId === socket.id) return;
         
-        const { tabId, lineaInsercion, lineasInsertadas } = data;
+        const { tabId, lineaInsercion, lineasInsertadas, lineaBorrado, lineasBorradas } = data;
         const editorData = editoresPorPestaña.get(tabId);
         if (!editorData || !editorData.editorInstance) return;
 
+        const cm = editorData.editorInstance;
+        // Guardar posición de scroll ANTES de cambiar el contenido para que el otro usuario no salte de vista
+        const scrollInfo = cm.getScrollInfo ? cm.getScrollInfo() : null;
+        const scrollTop = scrollInfo ? scrollInfo.top : 0;
+        const scrollLeft = scrollInfo ? scrollInfo.left : 0;
+
         sincronizando = true;
         const nuevoCodigo = data.cambios.codigo;
-        const cursor = editorData.editorInstance.getCursor();
+        const cursor = cm.getCursor();
         
-        // Si se insertó una línea nueva y nuestro cursor está por debajo, ajustarlo
+        // Ajustar nuestro cursor según inserción o borrado de líneas
         let nuevoCursor = cursor;
-        if (lineaInsercion !== null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
+        if (lineaInsercion != null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
           nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
+        } else if (lineaBorrado != null && lineasBorradas > 0 && cursor.line > lineaBorrado) {
+          // Si borraron líneas y estamos por debajo, subir nuestro cursor
+          const nuevaLinea = Math.max(0, cursor.line - lineasBorradas);
+          nuevoCursor = { line: nuevaLinea, ch: cursor.ch };
         }
         
-        editorData.editorInstance.setValue(nuevoCodigo);
-        editorData.editorInstance.setCursor(nuevoCursor);
+        cm.setValue(nuevoCodigo);
+        // Asegurar que el cursor quede dentro del documento (p. ej. tras borrar líneas)
+        const lineCount = cm.lineCount();
+        const line = Math.min(nuevoCursor.line, Math.max(0, lineCount - 1));
+        const lineLen = cm.getLine(line) ? cm.getLine(line).length : 0;
+        const ch = Math.min(nuevoCursor.ch, lineLen);
+        cm.setCursor({ line, ch });
         editorData.codigo = nuevoCodigo;
+
+        // Restaurar scroll para que quien recibe la actualización no sea movido arriba/abajo
+        if (scrollInfo && cm.scrollTo) {
+          cm.scrollTo(scrollLeft, scrollTop);
+          // Asegurar después del refresh interno de CodeMirror (puede recalcular layout)
+          requestAnimationFrame(() => {
+            if (cm.scrollTo) cm.scrollTo(scrollLeft, scrollTop);
+          });
+        }
         
         // Refrescar cursos remotos después de actualizar el código SOLO si es la pestaña activa
         setTimeout(() => {
@@ -4649,7 +4676,8 @@ document.addEventListener("keydown", function(e) {
             if (codigoActual && 
                 codigoActual.trim() !== '' && 
                 codigoActual !== PLANTILLA_CPP && 
-                codigoActual !== PLANTILLA_VECTOR &&
+                codigoActual !== PLANTILLA_VECTORTECLADO &&
+                codigoActual !== PLANTILLA_VECTORRANDOM &&
                 codigoActual !== PLANTILLA_MATRIZ &&
                 codigoActual !== PLANTILLA_LISTA_ENLAZADA) {
               codigoGuardadoAntesDesconexion.set(tabId, codigoActual);

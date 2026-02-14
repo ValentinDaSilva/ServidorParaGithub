@@ -512,7 +512,10 @@ if (!fs.existsSync(tempDir)) {
       // Detectar si se insertó una línea nueva (Enter)
       let lineaInsercion = null;
       let lineasInsertadas = 0;
-      
+      // Detectar si se borraron líneas (Backspace/Delete sobre varias líneas)
+      let lineaBorrado = null;
+      let lineasBorradas = 0;
+
       if (cambios.from && cambios.text) {
         // Contar cuántas líneas nuevas se insertaron
         const textoInsertado = Array.isArray(cambios.text) ? cambios.text.join('\n') : cambios.text;
@@ -558,6 +561,38 @@ if (!fs.existsSync(tempDir)) {
           });
         }
       }
+
+      // Detectar si se borraron líneas (from/to con to.line > from.line = borrado de líneas)
+      if (cambios.from && cambios.to && cambios.to.line > cambios.from.line) {
+        lineasBorradas = cambios.to.line - cambios.from.line;
+        lineaBorrado = cambios.from.line;
+        // Ajustar cursores de usuarios que están por debajo de la zona borrada
+        posicionesCursor.forEach((posicion, userSocketId) => {
+          if (posicion.tabId === tabId && userSocketId !== socket.id &&
+              posicion.line !== undefined && posicion.line !== null) {
+            // Si el cursor está por debajo de la última línea borrada, subirlo
+            if (posicion.line > lineaBorrado) {
+              const nuevaLinea = Math.max(lineaBorrado, posicion.line - lineasBorradas);
+              posicionesCursor.set(userSocketId, {
+                ...posicion,
+                line: nuevaLinea
+              });
+              const usuarioAfectado = usuariosConectados.get(userSocketId);
+              if (usuarioAfectado) {
+                io.to(userSocketId).emit('cursor-actualizado', {
+                  tabId: tabId,
+                  usuario: posicion.usuario,
+                  color: posicion.color,
+                  line: nuevaLinea,
+                  ch: posicion.ch,
+                  socketId: userSocketId,
+                  ajustadoPorBorrado: true
+                });
+              }
+            }
+          }
+        });
+      }
       
       // Reenviar a todos los demás usuarios en esta pestaña
       documento.usuariosActivos.forEach(userSocketId => {
@@ -567,8 +602,10 @@ if (!fs.existsSync(tempDir)) {
             usuario,
             tabId,
             socketId: socket.id,
-            lineaInsercion: lineaInsercion, // Informar sobre la inserción
-            lineasInsertadas: lineasInsertadas
+            lineaInsercion: lineaInsercion,
+            lineasInsertadas: lineasInsertadas,
+            lineaBorrado: lineaBorrado,
+            lineasBorradas: lineasBorradas
           });
         }
       });
