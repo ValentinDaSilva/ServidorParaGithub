@@ -110,6 +110,18 @@
       width: 100%;
       position: relative;
     }
+    /* F10: contenedor de ejercicios por encima de todo (máxima prioridad) */
+    #contenedor.f10-ejercicio-primer-plano {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10002;
+      max-height: 90vh;
+      overflow: auto;
+      width: calc(100% - 2rem);
+      max-width: 1000px;
+    }
 
     h2 {
       text-align: center;
@@ -641,70 +653,140 @@
       display: none !important;
     }
 
-    /* Estilos para usuarios conectados */
-    #usuarios-conectados {
+    /* Panel lateral de usuarios: overlay fijo, altura auto (no tan largo) */
+    #panel-usuarios-wrap {
       position: fixed;
-      top: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85);
-      color: white;
-      padding: 1rem;
-      border-radius: 10px;
+      left: 0;
+      top: 0;
       z-index: 1001;
-      min-width: 260px;
-      max-width: 300px;
-      max-height: 400px;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      transition: width 0.22s ease;
+      pointer-events: none;
+    }
+
+    #panel-usuarios-wrap.panel-cerrado {
+      width: 0;
+      overflow: hidden;
+    }
+
+    /* Panel abierto: top 0 left 0, height auto, max-height para no salir de pantalla */
+    #panel-usuarios-wrap.panel-abierto {
+      width: 340px;
+      left: 0;
+      top: 0;
+      max-height: 100vh;
+      pointer-events: auto;
+      overflow: visible;
+    }
+
+    /* Pestaña cuando cerrada: posición por JS (arrastrable) */
+    #toggle-panel-usuarios-btn {
+      position: fixed;
+      left: 0;
+      top: 78px;
+      width: 28px;
+      height: 36px;
+      min-width: 28px;
+      min-height: 36px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0 8px 8px 0;
+      color: #94a3b8;
+      font-size: 0.7rem;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      flex-shrink: 0;
+      z-index: 1002;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
+    }
+
+    #toggle-panel-usuarios-btn:active {
+      cursor: grabbing;
+    }
+
+    #toggle-panel-usuarios-btn:hover {
+      background: rgba(30, 41, 59, 0.98);
+      color: #00ffcc;
+      box-shadow: 2px 0 12px rgba(0, 255, 204, 0.15);
+    }
+
+    #toggle-panel-usuarios-btn .flecha-cerrado { display: inline-block; }
+    #toggle-panel-usuarios-btn .flecha-abierto { display: none; }
+    /* Flecha cerrar a la izquierda del panel para no tapar "Cerrar sesión" */
+    #panel-usuarios-wrap.panel-abierto #toggle-panel-usuarios-btn {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      right: auto;
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
+      min-height: 26px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 0.65rem;
+      box-shadow: none;
+      cursor: pointer;
+    }
+    #panel-usuarios-wrap.panel-abierto #toggle-panel-usuarios-btn .flecha-cerrado { display: none; }
+    #panel-usuarios-wrap.panel-abierto #toggle-panel-usuarios-btn .flecha-abierto { display: inline-block; }
+
+    /* Panel de contenido: altura según contenido */
+    #usuarios-conectados {
+      width: 340px;
+      min-width: 340px;
+      height: auto;
+      max-height: calc(100vh - 20px);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.96) 100%);
+      color: #e2e8f0;
+      padding: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      transition: box-shadow 0.3s ease;
       box-sizing: border-box;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
     }
 
-    #usuarios-conectados.arrastrando {
-      cursor: grabbing;
-      box-shadow: 0 4px 20px rgba(0, 255, 204, 0.5);
-      transition: none;
-    }
-
-    #usuarios-conectados.minimizado {
-      max-height: 50px;
+    #panel-usuarios-wrap.panel-cerrado #usuarios-conectados {
+      width: 0;
+      min-width: 0;
+      padding: 0;
       overflow: hidden;
-      padding: 0.5rem 1rem;
+      border: none;
+      box-shadow: none;
     }
 
-    #usuarios-conectados.minimizado #contenido-usuarios {
-      display: none;
-    }
-
+    /* Padding izquierdo para no solaparse con la flecha de cerrar */
     #usuarios-header {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-      cursor: grab;
-      user-select: none;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      gap: 0.75rem;
+      padding: 14px 14px 12px 44px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       flex-shrink: 0;
-    }
-
-    #usuarios-header:active {
-      cursor: grabbing;
+      min-height: 48px;
     }
 
     #usuarios-conectados h3 {
       margin: 0;
-      font-size: 0.95rem;
-      color: #00ffcc;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      letter-spacing: 0.02em;
       flex: 1;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      pointer-events: none;
     }
 
     .usuarios-header-buttons {
@@ -715,55 +797,61 @@
     }
 
     #minimizar-usuarios-btn {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 1rem;
-      cursor: pointer;
-      padding: 0.25rem 0.4rem;
-      border-radius: 4px;
-      transition: background 0.2s;
-      pointer-events: auto;
-    }
-
-    #minimizar-usuarios-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+      display: none;
     }
 
     #cerrar-sesion-btn {
-      padding: 0.4rem 0.65rem;
-      font-size: 0.8rem;
-      background: rgba(239, 68, 68, 0.3);
+      padding: 0.35rem 0.6rem;
+      font-size: 0.75rem;
+      background: rgba(239, 68, 68, 0.2);
       color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      border-radius: 5px;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 6px;
       cursor: pointer;
       white-space: nowrap;
+      transition: background 0.2s, color 0.2s;
     }
 
     #cerrar-sesion-btn:hover {
-      background: rgba(239, 68, 68, 0.45);
+      background: rgba(239, 68, 68, 0.35);
       color: #fff;
     }
 
     #contenido-usuarios {
-      margin-top: 0.5rem;
+      padding: 10px 12px 12px;
       overflow-y: auto;
       min-height: 0;
+      flex: 1;
+    }
+
+    .panel-usuarios-seccion {
+      margin-bottom: 14px;
+    }
+
+    .panel-usuarios-seccion-titulo {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      margin-bottom: 8px;
+      padding: 0 2px;
     }
 
     .toggle-cursos {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.8rem;
-      padding: 0.5rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+      margin-bottom: 6px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .toggle-cursos label {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      color: #cbd5e1;
       cursor: pointer;
       flex: 1;
     }
@@ -801,25 +889,43 @@
       transform: translateX(20px);
     }
 
+    #lista-usuarios {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
     .usuario-item {
       display: flex;
       align-items: center;
-      margin-bottom: 0.5rem;
-      padding: 0.3rem;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: background 0.15s;
+    }
+
+    .usuario-item:hover {
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .usuario-color {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      margin-right: 0.5rem;
-      display: inline-block;
+      margin-right: 10px;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
     }
 
     .usuario-nombre {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* Modal de nombre de usuario - estética mejorada */
@@ -1666,25 +1772,37 @@
     </div>
   </div>
 
-  <!-- Usuarios conectados -->
-  <div id="usuarios-conectados" style="display: none;">
-    <div id="usuarios-header">
-      <h3>👥 Usuarios conectados</h3>
-      <div class="usuarios-header-buttons">
-        <button id="cerrar-sesion-btn" title="Cerrar sesión y borrar datos guardados">Cerrar sesión</button>
-        <button id="minimizar-usuarios-btn" title="Minimizar/Maximizar">▼</button>
+  <!-- Panel lateral de usuarios: pestaña pequeña en esquina + panel rediseñado -->
+  <div id="panel-usuarios-wrap" class="panel-cerrado" style="display: none;">
+    <button type="button" id="toggle-panel-usuarios-btn" title="Abrir panel de usuarios">
+      <span class="flecha-cerrado">›</span>
+      <span class="flecha-abierto">‹</span>
+    </button>
+    <div id="usuarios-conectados">
+      <div id="usuarios-header">
+        <h3>Usuarios Conectados</h3>
+        <div class="usuarios-header-buttons">
+          <button id="cerrar-sesion-btn" title="Cerrar sesión y borrar datos guardados">Cerrar sesión</button>
+          <button id="minimizar-usuarios-btn" title="Minimizar/Maximizar" style="display: none;">▼</button>
+        </div>
       </div>
-    </div>
-    <div id="contenido-usuarios">
-      <div class="toggle-cursos">
-        <label for="toggle-cursos-remotos">Mostrar cursos remotos</label>
-        <div class="toggle-switch active" id="toggle-cursos-remotos"></div>
+      <div id="contenido-usuarios">
+        <div class="panel-usuarios-seccion">
+          <div class="panel-usuarios-seccion-titulo">Opciones</div>
+          <div class="toggle-cursos">
+            <label for="toggle-cursos-remotos">Mostrar cursos remotos</label>
+            <div class="toggle-switch active" id="toggle-cursos-remotos"></div>
+          </div>
+          <div class="toggle-cursos">
+            <label for="toggle-colaboracion">Permitir colaboración</label>
+            <div class="toggle-switch active" id="toggle-colaboracion"></div>
+          </div>
+        </div>
+        <div class="panel-usuarios-seccion">
+          <div class="panel-usuarios-seccion-titulo">Conectados</div>
+          <div id="lista-usuarios"></div>
+        </div>
       </div>
-      <div class="toggle-cursos">
-        <label for="toggle-colaboracion">Permitir colaboración</label>
-        <div class="toggle-switch active" id="toggle-colaboracion"></div>
-      </div>
-      <div id="lista-usuarios"></div>
     </div>
   </div>
 
@@ -1790,7 +1908,7 @@
           <div style="display: flex; justify-content: space-between;">
             <h2  style="color: white;display: inline; ">Editor de Código</h2>
             <div>
-                <button id="maximizarSoloEditor" title="Maximizar solo el editor" style="background: none;color: white;font-size: 2rem;cursor: pointer;border: none;">🗖</button>
+                <button type="button" class="btn-atajos-teclado-editor" id="btn-atajos-teclado-editor" title="Ver atajos de teclado" style="background: none;color: white;font-size: 1.5rem;cursor: pointer;border: none;padding: 0.25rem;" aria-label="Atajos de teclado">⌨️</button>
                 <button id="copiar-codigo-btn" title="Copiar código" style="background: none;color: white;font-size: 2rem;cursor: pointer;border: none;">📋</button>
                 
                 <button id="crear-funcion-btn" title="Crear función" style="display:none; background: none;color: white;font-size: 2rem;cursor: pointer;border: none;">\</button>
@@ -1798,7 +1916,7 @@
                 <button id="crear-funcion-btn2" title="Validar Codigo" style="background: none;color: white;font-size: 2rem;cursor: pointer;border: none;" onclick="modalValidarCodigo()">✓</button>
                 <button onclick="restaurarPlantilla()" id="restaurar-btn">Restaurar plantilla(F4)</button>
                 <button onclick="ejecutarCodigo()" style="background-color:#007bff">Ejecutar (F9)</button>
-                <button onclick="toggleEditor()">Minimizar editor (F10)</button>
+                <button onclick="toggleEditor()">Minimizar editor</button>
               </div>
       </div>
   <!-- Formulario para crear función C++ -->
@@ -1899,14 +2017,14 @@
     </div>
   </div>
 
-  <!-- Modal de validación (emergente) -->
+  <!-- Modal de validación (emergente): por encima del contenedor de ejercicios en F10 -->
   <div id="validacion-modal" style="
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.8);
     display: none;
-    z-index: 3000;
+    z-index: 10010;
     justify-content: center;
     align-items: center;
     color: white;
@@ -1954,7 +2072,7 @@
       <li><b>F7</b>: Enviar prueba de validacion</li>
       <li><b>F8</b>: Maximizar/Minimizar Salida</li>
       <li><b>F9</b>: Ejecutar código</li>
-      <li><b>F10</b>: Minimizar editor</li>
+      <li><b>F10</b>: Ver ejercicios por encima / Restaurar editor o pizarra</li>
       <li><b>Ctrl + Alt + ↑</b> o <b>Alt + T</b>: Mover línea arriba</li>
       <li><b>Ctrl + Alt + ↓</b> o <b>Alt + R</b>: Mover línea abajo</li>
       <li><b>Ctrl + Shift + ↑</b> o <b>Alt + V</b>: Duplicar línea arriba</li>
@@ -1978,10 +2096,13 @@
     let codigoLocal = '';
     let cursosRemotos = new Map(); // socketId -> {marker, username, color}
     let mostrarCursosRemotos = true; // Estado del toggle de cursos remotos
-    let menuUsuariosMinimizado = false; // Estado del menú de usuarios
+    let panelUsuariosAbierto = false; // Estado del panel lateral de usuarios (abierto/cerrado)
+    let tabUsuariosPos = { left: 0, top: 78 }; // Posición de la pestaña cuando está cerrada (arrastrable)
+    let arrastrandoTabUsuarios = false;
+    let tabUsuariosMousedown = false; // true solo tras mousedown en la pestaña
+    let tabUsuariosOffset = { x: 0, y: 0 };
+    let tabUsuariosFueArrastrado = false; // Para no abrir panel al soltar si se arrastró
     let codigoGuardadoAntesDesconexion = new Map(); // tabId -> codigo (para restaurar después de reconexión)
-    let arrastrandoMenu = false; // Estado de arrastre del menú
-    let offsetMenu = { x: 0, y: 0 }; // Offset del mouse al iniciar arrastre
     let socketListenersRegistrados = false; // Control para registrar listeners solo una vez
     let vaciarEditoresPorDesconexion = null; // Función para vaciar editores (se define en registrarSocketListeners)
 
@@ -3359,6 +3480,117 @@ if (editorWasOpen && !socket) {
     };
   
 let editorMaximizado = false; // Variable global para compatibilidad, pero ahora se usa por pestaña
+
+  // F10: guardar/restaurar estado al poner ejercicios por encima de todo
+  let f10EjercicioEnPrimerPlano = false;
+  let estadoAntesF10 = {
+    editorVisible: false,
+    pizarraVisible: false,
+    editorFullscreen: false,
+    outputMaximizado: false,
+    resultadoValidacionMaximizado: false,
+    pizarraFullscreen: false
+  };
+
+  /** Resetea el modo F10 y el estado guardado. Llamar al abrir editor o pizarra por botón. */
+  function resetEstadoF10() {
+    f10EjercicioEnPrimerPlano = false;
+    estadoAntesF10 = {
+      editorVisible: false,
+      pizarraVisible: false,
+      editorFullscreen: false,
+      outputMaximizado: false,
+      resultadoValidacionMaximizado: false,
+      pizarraFullscreen: false
+    };
+    const contenedor = document.getElementById('contenedor');
+    if (contenedor) contenedor.classList.remove('f10-ejercicio-primer-plano');
+  }
+
+  function toggleF10EjercicioPrimerPlano() {
+    const contenedor = document.getElementById('contenedor');
+    const editorOverlay = document.getElementById('editor-overlay');
+    const pizarraOverlay = document.getElementById('pizarra-overlay');
+    const abrirEditorBtn = document.getElementById('abrir-editor');
+    if (!contenedor || !editorOverlay || !pizarraOverlay) return;
+
+    if (!f10EjercicioEnPrimerPlano) {
+      // Guardar estado actual y poner ejercicios encima
+      estadoAntesF10.editorVisible = editorOverlay.style.display === 'flex';
+      estadoAntesF10.pizarraVisible = pizarraOverlay.classList.contains('activa');
+      estadoAntesF10.editorFullscreen = editorOverlay.classList.contains('fullscreen-editor');
+      estadoAntesF10.pizarraFullscreen = pizarraOverlay.classList.contains('pizarra-fullscreen');
+      const outputDiv = (typeof pestañaActiva !== 'undefined' && pestañaActiva)
+        ? document.querySelector('.output[data-tab-id="' + pestañaActiva + '"]')
+        : null;
+      estadoAntesF10.outputMaximizado = outputDiv ? outputDiv.classList.contains('maximized') : false;
+      const resVal = document.getElementById('resultado-validacion');
+      estadoAntesF10.resultadoValidacionMaximizado = resVal ? resVal.classList.contains('maximizado') : false;
+
+      contenedor.classList.add('f10-ejercicio-primer-plano');
+      editorOverlay.style.display = 'none';
+      if (abrirEditorBtn) abrirEditorBtn.style.display = 'inline-block';
+      pizarraOverlay.classList.remove('activa');
+      if (typeof pizarraAbierta !== 'undefined') pizarraAbierta = false;
+      f10EjercicioEnPrimerPlano = true;
+    } else {
+      // Restaurar estado anterior
+      contenedor.classList.remove('f10-ejercicio-primer-plano');
+      if (estadoAntesF10.editorVisible) {
+        editorOverlay.style.display = 'flex';
+        editorOverlay.style.zIndex = '1000';
+        pizarraOverlay.style.zIndex = '998';
+        if (estadoAntesF10.editorFullscreen) {
+          editorOverlay.classList.add('fullscreen-editor');
+          if (typeof editorMaximizado !== 'undefined') editorMaximizado = true;
+        } else {
+          editorOverlay.classList.remove('fullscreen-editor');
+          if (typeof editorMaximizado !== 'undefined') editorMaximizado = false;
+        }
+        if (abrirEditorBtn) abrirEditorBtn.style.display = 'none';
+        const outputDiv = (typeof pestañaActiva !== 'undefined' && pestañaActiva)
+          ? document.querySelector('.output[data-tab-id="' + pestañaActiva + '"]')
+          : null;
+        if (outputDiv) {
+          if (estadoAntesF10.outputMaximizado) {
+            outputDiv.classList.add('maximized');
+            const toggleBtn = outputDiv.querySelector('.toggleOutputSize');
+            if (toggleBtn) { toggleBtn.textContent = '🗗'; toggleBtn.title = 'Minimizar salida'; }
+          } else {
+            outputDiv.classList.remove('maximized');
+            const toggleBtn = outputDiv.querySelector('.toggleOutputSize');
+            if (toggleBtn) { toggleBtn.textContent = '🗗'; toggleBtn.title = 'Maximizar salida'; }
+          }
+        }
+        const btnMaximizar = document.getElementById('maximizarSoloEditor');
+        if (btnMaximizar) {
+          btnMaximizar.textContent = estadoAntesF10.editorFullscreen ? '🗗' : '🗖';
+          btnMaximizar.title = estadoAntesF10.editorFullscreen ? 'Restaurar vista completa' : 'Maximizar solo el editor';
+        }
+        const editorActivo = typeof obtenerEditorActivo === 'function' ? obtenerEditorActivo() : null;
+        if (editorActivo) { editorActivo.refresh(); editorActivo.focus(); }
+      } else {
+        editorOverlay.style.display = 'none';
+        if (abrirEditorBtn) abrirEditorBtn.style.display = 'inline-block';
+      }
+      if (estadoAntesF10.pizarraVisible) {
+        pizarraOverlay.classList.add('activa');
+        pizarraOverlay.style.zIndex = '1000';
+        editorOverlay.style.zIndex = '998';
+        if (estadoAntesF10.pizarraFullscreen) pizarraOverlay.classList.add('pizarra-fullscreen');
+        else pizarraOverlay.classList.remove('pizarra-fullscreen');
+        if (typeof pizarraAbierta !== 'undefined') pizarraAbierta = true;
+        if (typeof pizarraResize === 'function') pizarraResize();
+      }
+      const resVal = document.getElementById('resultado-validacion');
+      if (resVal) {
+        if (estadoAntesF10.resultadoValidacionMaximizado) resVal.classList.add('maximizado');
+        else resVal.classList.remove('maximizado');
+      }
+      f10EjercicioEnPrimerPlano = false;
+    }
+  }
+
 function toggleEditor() {
   const overlay = document.getElementById("editor-overlay");
   const editorBtn = document.getElementById("abrir-editor");
@@ -3376,6 +3608,8 @@ function toggleEditor() {
     editorBtn.style.display = "inline-block";
     localStorage.setItem('editorAbierto', 'false');
   } else {
+    // Abrir editor por botón: salir del modo F10 y resetear estado guardado
+    if (typeof resetEstadoF10 === 'function') resetEstadoF10();
     overlay.style.display = "flex";
     overlay.style.zIndex = "1000";
     const pizarraOverlay = document.getElementById("pizarra-overlay");
@@ -3734,7 +3968,7 @@ function toggleEditor() {
       }
       if (e.key === "F10" || e.code === "F10") {
         e.preventDefault();
-        toggleEditor();
+        toggleF10EjercicioPrimerPlano();
       }
       if ((e.key === "F8" || e.code === "F8") && document.getElementById("editor-overlay").style.display === "flex") {
         e.preventDefault();
@@ -4418,37 +4652,23 @@ function agregarPrototiposCpp(codigo) {
   return codigo;
 }
 
-const btnMaximizarSoloEditor = document.getElementById("maximizarSoloEditor");
 const editorTextArea = document.getElementById("editor");
 const inputArea = document.getElementById("input-area");
 const outputArea = document.getElementById("output");
 
 let editorSoloMax = false; // Variable global para compatibilidad, pero ahora se usa por pestaña
 
-btnMaximizarSoloEditor.addEventListener("click", () => {
-  if (!pestañaActiva) return;
-  const editorData = editoresPorPestaña.get(pestañaActiva);
-  if (!editorData) return;
-  
-  editorData.editorSoloMax = !editorData.editorSoloMax;
-  const overlay = document.getElementById("editor-overlay");
-  if (editorData.editorSoloMax) {
-    overlay.classList.add("fullscreen-editor");
-    btnMaximizarSoloEditor.textContent = "🗗";
-    btnMaximizarSoloEditor.title = "Restaurar vista completa";
-    editorMaximizado = true;
-  } else {
-    overlay.classList.remove("fullscreen-editor");
-    btnMaximizarSoloEditor.textContent = "🗖";
-    btnMaximizarSoloEditor.title = "Maximizar solo el editor";
-    editorMaximizado = false;
-  }
-  // Refrescar el editor activo de la pestaña actual
-  const editorActivo = obtenerEditorActivo();
-  if (editorActivo) {
-    editorActivo.refresh();
-  }
-});
+// Botón atajos de teclado en el editor: delegación para que funcione en paneles clonados por pestañas
+const editorOverlayAtajos = document.getElementById("editor-overlay");
+if (editorOverlayAtajos) {
+  editorOverlayAtajos.addEventListener("click", function(e) {
+    if (e.target.closest(".btn-atajos-teclado-editor")) {
+      e.preventDefault();
+      document.getElementById("modal-atajos").style.display = "flex";
+    }
+  });
+}
+
 document.addEventListener("keydown", function(e) {
   if (e.key === "F3" || e.code === "F3") {
     e.preventDefault();
@@ -4490,11 +4710,13 @@ document.addEventListener("keydown", function(e) {
     }
   }else if(e.key == "F2" || e.code == "F2"){
     e.preventDefault();
-    toggleMenuUsuarios();
+    togglePanelUsuarios();
   }else if(e.key == "Escape" &&  document.getElementById('formulario-funcion').style.display == 'block'){
      document.getElementById('cancelar-funcion-btn').click();
   }else if(e.key == "Escape" && document.getElementById("modal-atajos").style.display == "flex"){
     document.getElementById('modal-atajos').style.display='none';
+  }else if(e.key == "Escape" && document.getElementById("validacion-modal").style.display === "flex"){
+    if (typeof cerrarModalValidacion === 'function') cerrarModalValidacion();
   }
 });
 
@@ -4624,6 +4846,8 @@ document.addEventListener("keydown", function(e) {
       if (!overlay || !canvas) return;
       pizarraAbierta = !pizarraAbierta;
       if (pizarraAbierta) {
+        // Abrir pizarra por botón: salir del modo F10 y resetear estado guardado
+        if (typeof resetEstadoF10 === 'function') resetEstadoF10();
         overlay.classList.add('activa');
         overlay.style.zIndex = '1000';
         const editorOverlayEl = document.getElementById('editor-overlay');
@@ -5395,8 +5619,13 @@ document.addEventListener("keydown", function(e) {
       }
       if (toggleProfesor && !toggleProfesor.hasAttribute('data-listener-added')) {
         toggleProfesor.addEventListener('click', () => {
+          const yaEraProfesor = toggleProfesor.classList.contains('active');
           toggleProfesor.classList.toggle('active');
           actualizarVisibilidadModoProfesor();
+          // Si acaba de activar modo profesor, conectar de inmediato (no esperar a "Conectar")
+          if (!yaEraProfesor && toggleProfesor.classList.contains('active')) {
+            conectarUsuario();
+          }
         });
         toggleProfesor.setAttribute('data-listener-added', 'true');
         actualizarVisibilidadModoProfesor();
@@ -5699,9 +5928,9 @@ document.addEventListener("keydown", function(e) {
         }
         
         // Si no estaba reconectando, es la conexión inicial, continuar normalmente
-        // Ocultar modal y mostrar interfaz
+        // Ocultar modal y mostrar panel lateral de usuarios
         document.getElementById('modal-usuario').style.display = 'none';
-        document.getElementById('usuarios-conectados').style.display = 'block';
+        document.getElementById('panel-usuarios-wrap').style.display = 'flex';
         
         // Mostrar menú profesor si está en modo profesor
         const menuProfesorWrap = document.getElementById('menu-profesor-wrap');
@@ -5710,12 +5939,27 @@ document.addEventListener("keydown", function(e) {
           if (modoProfesor) inicializarMenuProfesor();
         }
         
-        // Inicializar event listeners si no se han inicializado aún
-        const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
-        if (minimizarBtn && !minimizarBtn.hasAttribute('data-listener-added')) {
-          minimizarBtn.addEventListener('click', toggleMenuUsuarios);
-          minimizarBtn.setAttribute('data-listener-added', 'true');
-        }
+        // Restaurar estado del panel de usuarios (abierto/cerrado) y posición de la pestaña
+        try {
+          const guardado = localStorage.getItem('panelUsuariosAbierto');
+          const wrap = document.getElementById('panel-usuarios-wrap');
+          const btn = document.getElementById('toggle-panel-usuarios-btn');
+          if (wrap && btn) {
+            panelUsuariosAbierto = guardado === '1';
+            if (panelUsuariosAbierto) {
+              wrap.classList.remove('panel-cerrado');
+              wrap.classList.add('panel-abierto');
+              btn.title = 'Cerrar panel de usuarios';
+              btn.style.left = '';
+              btn.style.top = '';
+            } else {
+              wrap.classList.remove('panel-abierto');
+              wrap.classList.add('panel-cerrado');
+              btn.title = 'Abrir panel de usuarios';
+              aplicarPosicionTabUsuarios();
+            }
+          }
+        } catch (e) {}
 
         const toggleCursos = document.getElementById('toggle-cursos-remotos');
         if (toggleCursos && !toggleCursos.hasAttribute('data-listener-added')) {
@@ -5734,9 +5978,6 @@ document.addEventListener("keydown", function(e) {
             toggleColaboracion.classList.remove('active');
           }
         }
-
-        // Inicializar arrastre del menú cuando se muestra
-        inicializarArrastreMenu();
 
         // Inicializar sistema de pestañas
         inicializarSistemaPestañas();
@@ -7756,130 +7997,54 @@ document.addEventListener("keydown", function(e) {
       }, 0);
     }
 
-    // Función para inicializar el arrastre del menú de usuarios
-    function inicializarArrastreMenu() {
-      const menu = document.getElementById('usuarios-conectados');
-      const header = document.getElementById('usuarios-header');
-      const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
-      
-      if (!menu || !header) return;
-
-      // Evitar inicialización múltiple
-      if (menu.hasAttribute('data-arrastre-inicializado')) return;
-      menu.setAttribute('data-arrastre-inicializado', 'true');
-
-      // Restaurar posición guardada o usar posición por defecto (top center)
-      const posicionGuardada = localStorage.getItem('menuUsuariosPosicion');
-      if (posicionGuardada) {
-        try {
-          const pos = JSON.parse(posicionGuardada);
-          menu.style.top = pos.top + 'px';
-          menu.style.left = pos.left + 'px';
-          menu.style.transform = 'none'; // Quitar transform cuando hay posición guardada
-        } catch (e) {
-          console.warn('Error al restaurar posición del menú:', e);
-          // Si hay error, usar posición por defecto
-          menu.style.left = '50%';
-          menu.style.transform = 'translateX(-50%)';
+    // Aplicar posición guardada de la pestaña (cuando el panel está cerrado)
+    function aplicarPosicionTabUsuarios() {
+      const btn = document.getElementById('toggle-panel-usuarios-btn');
+      const wrap = document.getElementById('panel-usuarios-wrap');
+      if (!btn || !wrap || panelUsuariosAbierto) return;
+      try {
+        const s = localStorage.getItem('tabUsuariosPosicion');
+        if (s) {
+          const p = JSON.parse(s);
+          tabUsuariosPos = { left: p.left, top: p.top };
         }
-      } else {
-        // Posición por defecto: top center
-        menu.style.left = '50%';
-        menu.style.transform = 'translateX(-50%)';
-      }
-
-      // Prevenir que el botón de minimizar active el arrastre
-      minimizarBtn.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-      });
-
-      // Evento de inicio de arrastre
-      header.addEventListener('mousedown', (e) => {
-        // No arrastrar si se hace click en el botón de minimizar
-        if (e.target === minimizarBtn || minimizarBtn.contains(e.target)) {
-          return;
-        }
-
-        arrastrandoMenu = true;
-        menu.classList.add('arrastrando');
-        
-        // Calcular offset del mouse respecto al menú
-        const rect = menu.getBoundingClientRect();
-        offsetMenu.x = e.clientX - rect.left;
-        offsetMenu.y = e.clientY - rect.top;
-
-        e.preventDefault();
-      });
-
-      // Evento de movimiento del mouse
-      document.addEventListener('mousemove', (e) => {
-        if (!arrastrandoMenu) return;
-
-        // Calcular nueva posición
-        let nuevaX = e.clientX - offsetMenu.x;
-        let nuevaY = e.clientY - offsetMenu.y;
-
-        // Limitar a los bordes de la ventana
-        const rect = menu.getBoundingClientRect();
-        const maxX = window.innerWidth - rect.width;
-        const maxY = window.innerHeight - rect.height;
-
-        nuevaX = Math.max(0, Math.min(nuevaX, maxX));
-        nuevaY = Math.max(0, Math.min(nuevaY, maxY));
-
-        // Actualizar posición
-        menu.style.top = nuevaY + 'px';
-        menu.style.left = nuevaX + 'px';
-        menu.style.transition = 'none'; // Desactivar transición durante arrastre
-      });
-
-      // Evento de fin de arrastre
-      document.addEventListener('mouseup', () => {
-        if (arrastrandoMenu) {
-          arrastrandoMenu = false;
-          menu.classList.remove('arrastrando');
-          menu.style.transition = 'box-shadow 0.3s ease'; // Reactivar transición
-
-          // Guardar posición (quitar transform cuando se arrastra)
-          menu.style.transform = 'none';
-          const rect = menu.getBoundingClientRect();
-          const posicion = {
-            top: rect.top,
-            left: rect.left
-          };
-          localStorage.setItem('menuUsuariosPosicion', JSON.stringify(posicion));
-        }
-      });
+      } catch (e) {}
+      btn.style.left = tabUsuariosPos.left + 'px';
+      btn.style.top = tabUsuariosPos.top + 'px';
     }
 
-    // Función para minimizar/maximizar el menú de usuarios
-    function toggleMenuUsuarios() {
-      const menu = document.getElementById('usuarios-conectados');
-      const btn = document.getElementById('minimizar-usuarios-btn');
-      
-      menuUsuariosMinimizado = !menuUsuariosMinimizado;
-      
-      if (menuUsuariosMinimizado) {
-        menu.classList.add('minimizado');
-        btn.textContent = '▲';
-        btn.title = 'Maximizar';
-      } else {
-        menu.classList.remove('minimizado');
-        btn.textContent = '▼';
-        btn.title = 'Minimizar';
+    // Abrir o cerrar el panel lateral de usuarios (flecha)
+    function togglePanelUsuarios(ev) {
+      if (tabUsuariosFueArrastrado && ev && ev.isTrusted) {
+        tabUsuariosFueArrastrado = false;
+        return;
       }
+      const wrap = document.getElementById('panel-usuarios-wrap');
+      const btn = document.getElementById('toggle-panel-usuarios-btn');
+      if (!wrap || !btn) return;
+
+      panelUsuariosAbierto = !panelUsuariosAbierto;
+      if (panelUsuariosAbierto) {
+        wrap.classList.remove('panel-cerrado');
+        wrap.classList.add('panel-abierto');
+        btn.title = 'Cerrar panel de usuarios';
+        btn.style.left = '';
+        btn.style.top = '';
+      } else {
+        wrap.classList.remove('panel-abierto');
+        wrap.classList.add('panel-cerrado');
+        btn.title = 'Abrir panel de usuarios';
+        aplicarPosicionTabUsuarios();
+      }
+      try {
+        localStorage.setItem('panelUsuariosAbierto', panelUsuariosAbierto ? '1' : '0');
+      } catch (e) {}
     }
 
-    // Función para abrir/cerrar el menú de usuarios
     function toggleMostrarMenuUsuarios() {
-      const menu = document.getElementById('usuarios-conectados');
-      if (!menu) return;
-      
-      if (menu.style.display === 'none' || menu.style.display === '') {
-        menu.style.display = 'block';
-      } else {
-        menu.style.display = 'none';
-      }
+      const wrap = document.getElementById('panel-usuarios-wrap');
+      if (!wrap) return;
+      wrap.style.display = wrap.style.display === 'none' ? 'flex' : 'none';
     }
 
     // Función para toggle de cursos remotos
@@ -7970,11 +8135,50 @@ document.addEventListener("keydown", function(e) {
 
     // Inicializar event listeners después de que el DOM esté listo
     window.addEventListener('DOMContentLoaded', () => {
-      // Botón de minimizar menú
-      const minimizarBtn = document.getElementById('minimizar-usuarios-btn');
-      if (minimizarBtn) {
-        minimizarBtn.addEventListener('click', toggleMenuUsuarios);
+      const togglePanelBtn = document.getElementById('toggle-panel-usuarios-btn');
+      const wrapPanel = document.getElementById('panel-usuarios-wrap');
+      if (togglePanelBtn) {
+        togglePanelBtn.addEventListener('click', function(e) {
+          togglePanelUsuarios(e);
+        });
+        // Arrastrar la pestaña cuando el panel está cerrado
+        togglePanelBtn.addEventListener('mousedown', function(e) {
+          if (panelUsuariosAbierto) return;
+          tabUsuariosFueArrastrado = false;
+          arrastrandoTabUsuarios = false;
+          tabUsuariosMousedown = true;
+          const rect = togglePanelBtn.getBoundingClientRect();
+          tabUsuariosOffset.x = e.clientX - rect.left;
+          tabUsuariosOffset.y = e.clientY - rect.top;
+          e.preventDefault();
+        });
       }
+      document.addEventListener('mousemove', function(e) {
+        if (!tabUsuariosMousedown || panelUsuariosAbierto || !togglePanelBtn) return;
+        if (!arrastrandoTabUsuarios && (e.buttons === 1 || e.which === 1)) {
+          arrastrandoTabUsuarios = true;
+          tabUsuariosFueArrastrado = true;
+        }
+        if (!arrastrandoTabUsuarios) return;
+        let left = e.clientX - tabUsuariosOffset.x;
+        let top = e.clientY - tabUsuariosOffset.y;
+        const w = 28, h = 36;
+        left = Math.max(0, Math.min(left, window.innerWidth - w));
+        top = Math.max(0, Math.min(top, window.innerHeight - h));
+        togglePanelBtn.style.left = left + 'px';
+        togglePanelBtn.style.top = top + 'px';
+      });
+      document.addEventListener('mouseup', function() {
+        if (arrastrandoTabUsuarios && togglePanelBtn) {
+          const rect = togglePanelBtn.getBoundingClientRect();
+          tabUsuariosPos = { left: rect.left, top: rect.top };
+          try {
+            localStorage.setItem('tabUsuariosPosicion', JSON.stringify(tabUsuariosPos));
+          } catch (err) {}
+        }
+        arrastrandoTabUsuarios = false;
+        tabUsuariosMousedown = false;
+      });
 
       // Toggle de cursos remotos
       const toggleCursos = document.getElementById('toggle-cursos-remotos');
@@ -7987,9 +8191,6 @@ document.addEventListener("keydown", function(e) {
       if (toggleColab) {
         toggleColab.addEventListener('click', toggleColaboracion);
       }
-
-      // Inicializar arrastre del menú
-      inicializarArrastreMenu();
     });
 
     // Permitir Enter en el input de usuario y hacer focus automático
