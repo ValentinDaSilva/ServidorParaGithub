@@ -232,6 +232,18 @@ if (!fs.existsSync(tempDir)) {
     return errores.length ? errores.join("\n") : "❗ Error de compilación.";
   }
 
+  function extraerLineasError(stderr) {
+    const lineas = new Set();
+    const regex = /:(\d+):\d+:/g;
+    let match;
+
+    while ((match = regex.exec(stderr)) !== null) {
+      lineas.add(parseInt(match[1], 10));
+    }
+
+    return Array.from(lineas);
+  }
+
   const PORT_COMPILADOR = 4000;
   const HOST_COMPILADOR = '0.0.0.0'; // Escuchar en todas las interfaces de red
 
@@ -869,6 +881,11 @@ if (!fs.existsSync(tempDir)) {
           indice: typeof indice === 'number' ? indice : 0 
         });
       }
+    });
+
+    socket.on('portapapeles-sistema-copy', (data) => {
+      const usuario = data?.usuario || usuariosConectados.get(socket.id)?.username || socket.id;
+      console.log(`📋 Usuario "${usuario}" usó Ctrl+Shift+C (copiado al portapapeles del sistema operativo)`);
     });
 
     // Cuando un usuario se desconecta

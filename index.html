@@ -2240,7 +2240,8 @@
     let indice = -1;
 
     // Función global para limpiar todos los ejercicios (DOM, variables y storage)
-    function limpiarEjercicios() {
+    // Si limpiezaTotal es true (p. ej. por desconexión), también resetea índice y más
+    function limpiarEjercicios(limpiezaTotal) {
       console.log('🧹 Limpiando ejercicios...');
       
       // Limpiar variable global
@@ -2248,9 +2249,13 @@
         ejercicios = [];
       }
       
-      // Limpiar sessionStorage (pero NO el índice)
+      // Limpiar sessionStorage
       sessionStorage.removeItem('archivoEjercicios');
-      // NO eliminar el índice: sessionStorage.removeItem('indice');
+      if (limpiezaTotal) {
+        sessionStorage.removeItem('indice');
+        sessionStorage.removeItem('indiceServidor');
+        sessionStorage.removeItem('nombreArchivoIndiceServidor');
+      }
       
       // Limpiar elementos del DOM
       const elementosEjercicio = [
@@ -2281,10 +2286,9 @@
         }
       });
       
-      // NO resetear el índice - mantenerlo como está
-      // if (typeof indice !== 'undefined') {
-      //   indice = -1;
-      // }
+      if (limpiezaTotal && typeof indice !== 'undefined') {
+        indice = -1;
+      }
       
       // Ocultar botón siguiente y mostrar botón iniciar
       const btnSiguiente = document.querySelector('button[onclick="siguiente()"]');
@@ -4742,6 +4746,7 @@ document.addEventListener("keydown", function(e) {
     let pizarraAbierta = false;
     let pizarraHerramienta = 'lapiz';
     let pizarraDibujando = false;
+    let pizarraClickDerechoActivo = false; // true cuando se dibuja con botón derecho = goma
     let pizarraCurrentStroke = [];
     let pizarraShapeStart = null;
     let pizarraPanX = 0, pizarraPanY = 0, pizarraZoom = 1;
@@ -4823,12 +4828,13 @@ document.addEventListener("keydown", function(e) {
         }
       });
       if (pizarraDibujando && pizarraCurrentStroke && pizarraCurrentStroke.length >= 2) {
-        ctx.strokeStyle = pizarraHerramienta === 'goma' ? '#0f172a' : '#e0e7ff';
-        ctx.lineWidth = pizarraHerramienta === 'goma' ? 12 : 3;
+        var toolEff = pizarraClickDerechoActivo ? 'goma' : pizarraHerramienta;
+        ctx.strokeStyle = toolEff === 'goma' ? '#0f172a' : '#e0e7ff';
+        ctx.lineWidth = toolEff === 'goma' ? 12 : 3;
         var ci = document.getElementById('pizarra-color-input');
         var gi = document.getElementById('pizarra-grosor');
-        if (ci) ctx.strokeStyle = pizarraHerramienta === 'goma' ? '#0f172a' : ci.value;
-        if (gi) ctx.lineWidth = pizarraHerramienta === 'goma' ? parseInt(gi.value, 10) * 4 : parseInt(gi.value, 10);
+        if (ci) ctx.strokeStyle = toolEff === 'goma' ? '#0f172a' : ci.value;
+        if (gi) ctx.lineWidth = toolEff === 'goma' ? parseInt(gi.value, 10) * 4 : parseInt(gi.value, 10);
         ctx.beginPath();
         ctx.moveTo(pizarraCurrentStroke[0].x, pizarraCurrentStroke[0].y);
         for (var i = 1; i < pizarraCurrentStroke.length; i++) ctx.lineTo(pizarraCurrentStroke[i].x, pizarraCurrentStroke[i].y);
@@ -5149,6 +5155,13 @@ document.addEventListener("keydown", function(e) {
             if (colorMenu) colorMenu.classList.remove('abierto');
             actualizarActivo();
             if (typeof pizarraActualizarCursor === 'function') pizarraActualizarCursor();
+          } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (typeof pizarraStrokesLocal !== 'undefined' && pizarraStrokesLocal.length > 0) {
+              pizarraStrokesLocal.pop();
+              if (socket && socket.connected) socket.emit('pizarra-undo');
+              if (typeof pizarraRedraw === 'function') pizarraRedraw();
+            }
           }
         });
       }
@@ -5164,11 +5177,20 @@ document.addEventListener("keydown", function(e) {
 
       const startDraw = (e) => {
         e.preventDefault();
+        var btn = (e.button !== undefined) ? e.button : 0;
+        if (btn === 2) {
+          pizarraClickDerechoActivo = true;
+        } else if (btn === 0) {
+          pizarraClickDerechoActivo = false;
+        } else {
+          return;
+        }
         const pt = pizarraCoords(e);
-        if (pizarraHerramienta === 'mano') {
+        var toolEff = pizarraClickDerechoActivo ? 'goma' : pizarraHerramienta;
+        if (toolEff === 'mano') {
           pizarraPanStart = { x: pt.x, y: pt.y };
           canvas.style.cursor = 'grabbing';
-        } else if (esFiguraTool()) {
+        } else if (!pizarraClickDerechoActivo && esFiguraTool()) {
           pizarraDibujando = true;
           pizarraShapeStart = pizarraScreenToWorld(pt.x, pt.y);
         } else {
@@ -5224,8 +5246,9 @@ document.addEventListener("keydown", function(e) {
           ctx2.save();
           ctx2.translate(pizarraPanX, pizarraPanY);
           ctx2.scale(pizarraZoom, pizarraZoom);
-          var color2 = pizarraHerramienta === 'goma' ? '#0f172a' : (colorInput ? colorInput.value : '#e0e7ff');
-          var lw2 = pizarraHerramienta === 'goma' ? (grosorInput ? parseInt(grosorInput.value, 10) : 3) * 4 : (grosorInput ? parseInt(grosorInput.value, 10) : 3);
+          var toolEff = pizarraClickDerechoActivo ? 'goma' : pizarraHerramienta;
+          var color2 = toolEff === 'goma' ? '#0f172a' : (colorInput ? colorInput.value : '#e0e7ff');
+          var lw2 = toolEff === 'goma' ? (grosorInput ? parseInt(grosorInput.value, 10) : 3) * 4 : (grosorInput ? parseInt(grosorInput.value, 10) : 3);
           ctx2.strokeStyle = color2;
           ctx2.lineWidth = lw2;
           ctx2.lineCap = 'round';
@@ -5240,30 +5263,32 @@ document.addEventListener("keydown", function(e) {
 
       const endDraw = (e) => {
         e.preventDefault();
-        if (pizarraHerramienta === 'mano') {
+        var toolEff = pizarraClickDerechoActivo ? 'goma' : pizarraHerramienta;
+        if (toolEff === 'mano') {
           pizarraPanStart = null;
           canvas.style.cursor = 'grab';
           return;
         }
         if (!pizarraDibujando) return;
         pizarraDibujando = false;
-        if (esFiguraTool() && pizarraShapeStart) {
+        if (esFiguraTool() && pizarraShapeStart && !pizarraClickDerechoActivo) {
           var pt = pizarraCoords(e);
           var wpt = pizarraScreenToWorld(pt.x, pt.y);
           var color = colorInput ? colorInput.value : '#e0e7ff';
           var lw = grosorInput ? parseInt(grosorInput.value, 10) : 3;
-          var stroke = { tool: pizarraHerramienta, color: color, lineWidth: lw, start: { x: pizarraShapeStart.x, y: pizarraShapeStart.y }, end: { x: wpt.x, y: wpt.y } };
+          var stroke = { tool: toolEff, color: color, lineWidth: lw, start: { x: pizarraShapeStart.x, y: pizarraShapeStart.y }, end: { x: wpt.x, y: wpt.y } };
           pizarraStrokesLocal.push(stroke);
           if (socket && socket.connected) socket.emit('pizarra-stroke', stroke);
           pizarraShapeStart = null;
         } else if (pizarraCurrentStroke.length >= 2) {
-          var color = pizarraHerramienta === 'goma' ? '#0f172a' : (colorInput ? colorInput.value : '#e0e7ff');
-          var lw = pizarraHerramienta === 'goma' ? (grosorInput ? parseInt(grosorInput.value, 10) : 3) * 4 : (grosorInput ? parseInt(grosorInput.value, 10) : 3);
-          var stroke = { tool: pizarraHerramienta, color: color, lineWidth: lw, points: pizarraCurrentStroke.slice() };
+          var color = toolEff === 'goma' ? '#0f172a' : (colorInput ? colorInput.value : '#e0e7ff');
+          var lw = toolEff === 'goma' ? (grosorInput ? parseInt(grosorInput.value, 10) : 3) * 4 : (grosorInput ? parseInt(grosorInput.value, 10) : 3);
+          var stroke = { tool: toolEff, color: color, lineWidth: lw, points: pizarraCurrentStroke.slice() };
           pizarraStrokesLocal.push(stroke);
           if (socket && socket.connected) socket.emit('pizarra-stroke', stroke);
           pizarraCurrentStroke = [];
         }
+        pizarraClickDerechoActivo = false;
       };
 
       canvas.removeEventListener('mousedown', canvas._pizarraStart);
@@ -5306,6 +5331,7 @@ document.addEventListener("keydown", function(e) {
         pizarraRedraw();
       };
       canvas.addEventListener('wheel', wheelZoom, { passive: false });
+      canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     }
 
     window.addEventListener('resize', () => {
@@ -6168,15 +6194,22 @@ document.addEventListener("keydown", function(e) {
         sincronizando = true;
         const nuevoCodigo = data.cambios.codigo;
         const cursor = cm.getCursor();
+        const cambios = data.cambios || {};
+        const from = cambios.from;
+        // Detectar reemplazo completo del documento (ej: usuario nuevo carga el mismo código)
+        // En ese caso NO ajustar cursor para no mandar al usuario existente a la última línea
+        const esReemplazoCompleto = from && from.line === 0 && from.ch === 0 &&
+          (lineasInsertadas >= (nuevoCodigo.split('\n').length - 1) || (cambios.to && cambios.to.line >= cm.lineCount() - 1));
         
-        // Ajustar nuestro cursor según inserción o borrado de líneas
+        // Ajustar nuestro cursor según inserción o borrado de líneas (solo en cambios incrementales)
         let nuevoCursor = cursor;
-        if (lineaInsercion != null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
-          nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
-        } else if (lineaBorrado != null && lineasBorradas > 0 && cursor.line > lineaBorrado) {
-          // Si borraron líneas y estamos por debajo, subir nuestro cursor
-          const nuevaLinea = Math.max(0, cursor.line - lineasBorradas);
-          nuevoCursor = { line: nuevaLinea, ch: cursor.ch };
+        if (!esReemplazoCompleto) {
+          if (lineaInsercion != null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
+            nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
+          } else if (lineaBorrado != null && lineasBorradas > 0 && cursor.line > lineaBorrado) {
+            const nuevaLinea = Math.max(0, cursor.line - lineasBorradas);
+            nuevoCursor = { line: nuevaLinea, ch: cursor.ch };
+          }
         }
         
         cm.setValue(nuevoCodigo);
@@ -6513,8 +6546,8 @@ document.addEventListener("keydown", function(e) {
       
       // Función para vaciar editores cuando se pierde conexión (asignar a variable global)
       vaciarEditoresPorDesconexion = function() {
-        // Limpiar ejercicios primero
-        limpiarEjercicios();
+        // Limpiar ejercicios, ejercicio actual e índice (limpieza total por desconexión)
+        limpiarEjercicios(true);
         
         mostrarIndicadorSincronizacion();
         
@@ -6562,26 +6595,12 @@ document.addEventListener("keydown", function(e) {
           }, 3000); // Intentar cada 3 segundos
         }
         
-        // Guardar código de todas las pestañas antes de vaciar
+        // Borrar código guardado (no restaurar al reconectar)
         codigoGuardadoAntesDesconexion.clear();
-        editoresPorPestaña.forEach((editorData, tabId) => {
-          if (editorData && editorData.editorInstance) {
-            const codigoActual = editorData.editorInstance.getValue();
-            // Solo guardar si no es la plantilla vacía
-            if (codigoActual && 
-                codigoActual.trim() !== '' && 
-                codigoActual !== PLANTILLA_CPP && 
-                codigoActual !== PLANTILLA_VECTORTECLADO &&
-                codigoActual !== PLANTILLA_VECTORRANDOM &&
-                codigoActual !== PLANTILLA_MATRIZ &&
-                codigoActual !== PLANTILLA_LISTA_ENLAZADA) {
-              codigoGuardadoAntesDesconexion.set(tabId, codigoActual);
-              console.log(`💾 Código guardado para pestaña ${tabId} antes de desconexión`);
-            }
-          }
-        });
+        // Limpiar documentos disponibles (estado de colaboración)
+        documentosDisponibles.clear();
         
-        // Vaciar todos los editores (solo para este usuario)
+        // Vaciar todos los editores (solo para este usuario, de forma local)
         editoresPorPestaña.forEach((editorData, tabId) => {
           if (editorData && editorData.editorInstance) {
             // Vaciar el editor
@@ -6817,13 +6836,13 @@ document.addEventListener("keydown", function(e) {
         
         // Establecer código inicial: primero verificar si hay código del servidor
         const codigoDelDocumento = documentosDisponibles.get(tabId)?.codigo || '';
+        sincronizando = true;
         if (codigoDelDocumento.trim() !== '') {
-          // Si hay código del servidor, usarlo
           editorInstance.setValue(codigoDelDocumento);
         } else {
-          // Si no hay código del servidor, usar plantilla
           editorInstance.setValue(obtenerPlantillaActual());
         }
+        sincronizando = false;
         
         // Guardar datos del editor
         editoresPorPestaña.set(tabId, {
@@ -8950,6 +8969,9 @@ document.addEventListener("keydown", function(e) {
         const textoSeleccionado = obtenerTextoSeleccionado(elemento);
         if (textoSeleccionado) {
           console.log('Ctrl+Shift+C detectado - copiando al portapapeles del sistema');
+          if (typeof socket !== 'undefined' && socket && socket.connected && miUsuario) {
+            socket.emit('portapapeles-sistema-copy', { usuario: miUsuario });
+          }
           
           // Marcar que usaremos el portapapeles del sistema para evitar interceptación
           usarPortapapelesSistema = true;
