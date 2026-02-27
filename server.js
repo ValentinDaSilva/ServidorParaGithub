@@ -157,9 +157,11 @@ if (!fs.existsSync(tempDir)) {
       if (compileErr) {
         console.log('❌ Error de compilación');
         const humanizado = humanizarErrores(stderr);
+        const lineasError = extraerLineasError(stderr);
         limpiarArchivos(cppPath, outputBinary);
         return res.json({
-          output: `${humanizado}\n\nMensaje original del compilador:\n${stderr}`
+          output: `${humanizado}\n\nMensaje original del compilador:\n${stderr}`,
+          lineasError
         });
       }
 
@@ -188,7 +190,7 @@ if (!fs.existsSync(tempDir)) {
       const timeout = setTimeout(() => {
         finalizadoPorTimeout = true;
         proceso.kill("SIGTERM");
-      }, 5000);
+      }, 4000);
 
       proceso.on("close", code => {
         clearTimeout(timeout);
@@ -857,6 +859,13 @@ if (!fs.existsSync(tempDir)) {
       if (pizarraStrokes.length > 0) {
         pizarraStrokes.pop();
         socket.to('pizarra').emit('pizarra-undo');
+      }
+    });
+
+    socket.on('pizarra-redo', (data) => {
+      if (data) {
+        pizarraStrokes.push(data);
+        socket.to('pizarra').emit('pizarra-redo', data);
       }
     });
 

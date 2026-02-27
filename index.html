@@ -593,6 +593,52 @@
       visibility: visible !important;
     }
 
+    /* Navegación a líneas de error de compilación */
+    .compile-error-lines {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 4px 0 6px 0;
+    }
+    .compile-error-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      background: rgba(239, 68, 68, 0.12);
+      color: #fecaca;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .compile-error-chip:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.65);
+    }
+    .compiler-raw {
+      color: #86efac; /* verde claro */
+      background: inherit;
+      padding: 8px;
+      border-radius: 5px;
+      margin: 0;
+    }
+    .compiler-error-line {
+      cursor: pointer;
+      text-decoration: underline dotted rgba(254, 202, 202, 0.65);
+      text-underline-offset: 2px;
+    }
+    .compiler-error-line:hover {
+      background: rgba(239, 68, 68, 0.18);
+    }
+
+    /* Resaltado temporal al navegar a un error */
+    .CodeMirror .compile-line-highlight {
+      background: rgba(254, 240, 138, 0.78) !important; /* más claro y más visible */
+    }
+
     
     .cm-matchhighlight {
   background-color: rgba(0, 217, 255, 0.4); /* amarillo suave */
@@ -1937,7 +1983,7 @@
         <textarea class="input-area" data-tab-id="" placeholder="Escribí la entrada estándar aquí..."></textarea>
 
         <!-- Menú de autocompletado personalizado -->
-        <div class="autocomplete-menu" data-tab-id="" style="display:none;position:absolute;z-index:5000;background:white;border:1px solid #007bff;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:monospace;font-size:1rem;max-height:200px;overflow-y:auto;"></div>
+        <div class="autocomplete-menu" data-tab-id="" style="display:none;position:absolute;z-index:4000;background:white;border:1px solid #007bff;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:monospace;font-size:1rem;max-height:200px;overflow-y:auto;"></div>
 
         <div class="output" data-tab-id="">
           <button class="toggleOutputSize" title="Maximizar salida">🗗</button>
@@ -1963,6 +2009,7 @@
         <button class="pizarra-tool-btn activo" id="pizarra-tool-lapiz" title="Lápiz">✏️</button>
         <button class="pizarra-tool-btn" id="pizarra-tool-goma" title="Goma">🧹</button>
         <button class="pizarra-tool-btn" id="pizarra-tool-mano" title="Desplazarse (pan)">✋</button>
+        <button class="pizarra-tool-btn" id="pizarra-tool-puntero" title="Puntero (solo señalar)">🔴</button>
         <div class="pizarra-figuras-wrap">
           <button class="pizarra-tool-btn" id="pizarra-tool-figuras" title="Figuras">◇</button>
           <div class="pizarra-figuras-menu" id="pizarra-figuras-menu">
@@ -3715,6 +3762,130 @@ function toggleEditor() {
     let urlsCompilacion = obtenerURLsCompilador();
     
     let URL = compileServerURL;
+
+    function normalizarLineasError(lineas) {
+      if (!Array.isArray(lineas)) return [];
+      const set = new Set();
+      for (const l of lineas) {
+        const n = typeof l === 'string' ? parseInt(l, 10) : l;
+        if (Number.isFinite(n) && n > 0) set.add(n);
+      }
+      return Array.from(set).sort((a, b) => a - b);
+    }
+
+    function obtenerLineasErrorDesdeData(data) {
+      if (!data || typeof data !== 'object') return [];
+      return normalizarLineasError(
+        data.lineasError || data.errorLines || data.lineas || data.lines
+      );
+    }
+
+    function extraerLineasErrorDesdeTextoCompiler(texto) {
+      if (!texto || typeof texto !== 'string') return [];
+      const set = new Set();
+      const regex = /:(\d+):\d+:/g;
+      let match;
+      while ((match = regex.exec(texto)) !== null) {
+        const n = parseInt(match[1], 10);
+        if (Number.isFinite(n) && n > 0) set.add(n);
+      }
+      return Array.from(set).sort((a, b) => a - b);
+    }
+
+    function renderizarChipsLineasError(lineas) {
+      const normalizadas = normalizarLineasError(lineas);
+      if (normalizadas.length === 0) return '';
+      return `
+        <div class="compile-error-lines" aria-label="Líneas con error">
+          ${normalizadas
+            .map((n) => `<span class="compile-error-chip" data-line="${n}" title="Click para ir a la línea ${n}">Línea ${n}</span>`)
+            .join('')}
+        </div>
+      `;
+    }
+
+    function resaltarLineaEnEditor(editor, line0) {
+      if (!editor || typeof editor.addLineClass !== 'function') return;
+      let handle = null;
+      try {
+        handle = typeof editor.getLineHandle === 'function' ? editor.getLineHandle(line0) : null;
+      } catch (_) {
+        handle = null;
+      }
+      if (!handle) return;
+
+      try {
+        editor.addLineClass(handle, 'background', 'compile-line-highlight');
+      } catch (_) {
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        try {
+          editor.removeLineClass(handle, 'background', 'compile-line-highlight');
+        } catch (_) {}
+        clearTimeout(timeout);
+      }, 4500);
+    }
+
+    function irALineaEnEditor(linea1Based) {
+      const editorActivo = obtenerEditorActivo();
+      if (!editorActivo) return false;
+      if (editorActivo.lineCount && editorActivo.lineCount() === 0) return false;
+
+      const linea0 = Math.max(0, Math.min((linea1Based || 1) - 1, editorActivo.lineCount() - 1));
+      editorActivo.setCursor(CodeMirror.Pos(linea0, 0));
+      editorActivo.scrollIntoView(CodeMirror.Pos(linea0, 0), 100);
+      editorActivo.focus();
+      resaltarLineaEnEditor(editorActivo, linea0);
+      return true;
+    }
+
+    function navegarAError(linea, desdeElemento, domEvent) {
+      if (domEvent) {
+        try {
+          domEvent.preventDefault();
+          domEvent.stopPropagation();
+        } catch (_) {}
+      }
+
+      const outputDiv = desdeElemento && desdeElemento.closest ? desdeElemento.closest('.output') : null;
+      const estabaMaximizada = !!(outputDiv && outputDiv.classList.contains('maximized'));
+      const toggleBtn = outputDiv ? outputDiv.querySelector('.toggleOutputSize') : null;
+
+      const ok = irALineaEnEditor(linea);
+
+      // Si la salida estaba maximizada, minimizala DESPUÉS de navegar (así no se siente "desmaximiza y luego navega")
+      if (ok && estabaMaximizada && outputDiv) {
+        setTimeout(() => {
+          outputDiv.classList.remove('maximized');
+          if (toggleBtn) {
+            toggleBtn.textContent = "🗗";
+            toggleBtn.title = "Maximizar salida";
+          }
+        }, 30);
+      }
+    }
+
+    if (!window.__compileErrorNavInstalled) {
+      window.__compileErrorNavInstalled = true;
+
+      document.addEventListener('dblclick', (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('.compiler-error-line') : null;
+        if (!el) return;
+        const linea = parseInt(el.getAttribute('data-line') || '', 10);
+        if (!Number.isFinite(linea)) return;
+        navegarAError(linea, el, e);
+      });
+
+      document.addEventListener('click', (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('.compile-error-chip') : null;
+        if (!el) return;
+        const linea = parseInt(el.getAttribute('data-line') || '', 10);
+        if (!Number.isFinite(linea)) return;
+        navegarAError(linea, el, e);
+      });
+    }
     
     // Función para intentar compilar con múltiples URLs
     function intentarCompilar(urls, index, sourceCode, input, outputContent, outputDiv, toggleBtn) {
@@ -3775,9 +3946,26 @@ function toggleEditor() {
             toggleBtn.textContent = "🗗";
             toggleBtn.title = "Minimizar salida";
           }
+          const humanizado = escapeHtml(partes[0].trim());
+          const stderrTexto = partes[1].trimEnd();
+          const lineasDesdeServidor = obtenerLineasErrorDesdeData(data);
+          const lineasFallback = extraerLineasErrorDesdeTextoCompiler(stderrTexto);
+          const lineas = (lineasDesdeServidor && lineasDesdeServidor.length) ? lineasDesdeServidor : lineasFallback;
+
+          const chips = renderizarChipsLineasError(lineas);
+          const stderrHtml = stderrTexto.split('\n').map((linea) => {
+            const m = linea.match(/:(\d+):\d+:/);
+            if (m) {
+              const ln = m[1];
+              return `<span class="compiler-error-line" data-line="${ln}" title="Doble click para ir a la línea ${ln}">${escapeHtml(linea)}</span>`;
+            }
+            return `<span class="compiler-error-text">${escapeHtml(linea)}</span>`;
+          }).join('\n');
+
           outputContent.innerHTML =
-            `<div style="color: darkgreen; font-weight: bold; margin-bottom: 1em;">${partes[0].trim()}</div>` +
-            `<pre style="color: white; background: inherit; padding: 10px; border-radius: 5px;">${partes[1].trim()}</pre>`;
+            `<div style="color: darkgreen; font-weight: bold; margin: 0 0 6px 0;">${humanizado}</div>` +
+            chips +
+            `<pre class="compiler-raw">${stderrHtml}</pre>`;
         } else if (/error|Error|compilador|compilation/i.test(output)) {
           // Si detecta la palabra error, también maximiza
           outputDiv.classList.add("maximized");
@@ -3785,7 +3973,15 @@ function toggleEditor() {
             toggleBtn.textContent = "🗗";
             toggleBtn.title = "Minimizar salida";
           }
-          outputContent.textContent = output;
+          const lineasDesdeServidor = obtenerLineasErrorDesdeData(data);
+          const lineasFallback = extraerLineasErrorDesdeTextoCompiler(output);
+          const lineas = (lineasDesdeServidor && lineasDesdeServidor.length) ? lineasDesdeServidor : lineasFallback;
+          const chips = renderizarChipsLineasError(lineas);
+          if (chips) {
+            outputContent.innerHTML = chips + `<pre class="compiler-raw">${escapeHtml(output)}</pre>`;
+          } else {
+            outputContent.textContent = output;
+          }
         } else {
           // Salida normal
           outputContent.textContent = output;
@@ -4743,6 +4939,7 @@ document.addEventListener("keydown", function(e) {
 
     // ========== PIZARRA COLABORATIVA ==========
     let pizarraStrokesLocal = [];
+    let pizarraRedoStack = [];
     let pizarraAbierta = false;
     let pizarraHerramienta = 'lapiz';
     let pizarraDibujando = false;
@@ -4756,6 +4953,8 @@ document.addEventListener("keydown", function(e) {
     function pizarraScreenToWorld(sx, sy) {
       return { x: (sx - pizarraPanX) / pizarraZoom, y: (sy - pizarraPanY) / pizarraZoom };
     }
+
+    let pizarraPunteroPos = null;
 
     function pizarraRedraw() {
       const canvas = document.getElementById('pizarra-canvas');
@@ -4840,6 +5039,18 @@ document.addEventListener("keydown", function(e) {
         for (var i = 1; i < pizarraCurrentStroke.length; i++) ctx.lineTo(pizarraCurrentStroke[i].x, pizarraCurrentStroke[i].y);
         ctx.stroke();
       }
+      // Dibujar puntero (no se guarda en strokes)
+      if (pizarraHerramienta === 'puntero' && pizarraPunteroPos) {
+        ctx.save();
+        ctx.translate(pizarraPanX, pizarraPanY);
+        ctx.scale(pizarraZoom, pizarraZoom);
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(pizarraPunteroPos.x, pizarraPunteroPos.y, 8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+
       ctx.restore();
     }
 
@@ -4916,12 +5127,14 @@ document.addEventListener("keydown", function(e) {
       const btnExport = document.getElementById('pizarra-btn-export');
       var esFigura = function(h) { return h === 'line' || h === 'rect' || h === 'circle'; };
       const manoBtn = document.getElementById('pizarra-tool-mano');
+      const punteroBtn = document.getElementById('pizarra-tool-puntero');
       var actualizarActivo = function() {
         document.querySelectorAll('.pizarra-tool-btn').forEach(btn => btn.classList.remove('activo'));
         document.querySelectorAll('.pizarra-figura-opt').forEach(btn => btn.classList.remove('activo'));
         if (pizarraHerramienta === 'lapiz' && lapiz) lapiz.classList.add('activo');
         else if (pizarraHerramienta === 'goma' && goma) goma.classList.add('activo');
         else if (pizarraHerramienta === 'mano' && manoBtn) manoBtn.classList.add('activo');
+        else if (pizarraHerramienta === 'puntero' && punteroBtn) punteroBtn.classList.add('activo');
         else if (esFigura(pizarraHerramienta)) {
           if (figurasBtn) figurasBtn.classList.add('activo');
           var opt = document.querySelector('.pizarra-figura-opt[data-figura="' + pizarraHerramienta + '"]');
@@ -4983,10 +5196,27 @@ document.addEventListener("keydown", function(e) {
           if (c) c.style.cursor = 'grab';
         };
       }
+      if (punteroBtn) {
+        punteroBtn.onclick = function() {
+          pizarraGuardarGrosorActual();
+          pizarraHerramienta = 'puntero';
+          if (figurasMenu) figurasMenu.classList.remove('abierto');
+          if (colorMenu) colorMenu.classList.remove('abierto');
+          actualizarActivo();
+          var c = document.getElementById('pizarra-canvas');
+          if (c) c.style.cursor = 'none';
+        };
+      }
       var pizarraActualizarCursor = function() {
         var c = document.getElementById('pizarra-canvas');
         if (!c) return;
-        c.style.cursor = pizarraHerramienta === 'mano' ? (pizarraPanStart ? 'grabbing' : 'grab') : 'crosshair';
+        if (pizarraHerramienta === 'mano') {
+          c.style.cursor = pizarraPanStart ? 'grabbing' : 'grab';
+        } else if (pizarraHerramienta === 'puntero') {
+          c.style.cursor = 'none';
+        } else {
+          c.style.cursor = 'crosshair';
+        }
       };
       var pizarraGuardarGrosorActual = function() {
         var g = grosorInput ? parseInt(grosorInput.value, 10) : 3;
@@ -5065,6 +5295,7 @@ document.addEventListener("keydown", function(e) {
         limpiar.onclick = () => {
           if (socket && socket.connected) socket.emit('pizarra-clear');
           pizarraStrokesLocal = [];
+          pizarraRedoStack = [];
           pizarraRedraw();
         };
       }
@@ -5089,7 +5320,8 @@ document.addEventListener("keydown", function(e) {
       if (btnUndo) {
         btnUndo.onclick = function() {
           if (pizarraStrokesLocal.length > 0) {
-            pizarraStrokesLocal.pop();
+            var last = pizarraStrokesLocal.pop();
+            if (last) pizarraRedoStack.push(last);
             if (socket && socket.connected) socket.emit('pizarra-undo');
             pizarraRedraw();
           }
@@ -5158,9 +5390,20 @@ document.addEventListener("keydown", function(e) {
           } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
             e.preventDefault();
             if (typeof pizarraStrokesLocal !== 'undefined' && pizarraStrokesLocal.length > 0) {
-              pizarraStrokesLocal.pop();
+              var last = pizarraStrokesLocal.pop();
+              if (last && typeof pizarraRedoStack !== 'undefined') pizarraRedoStack.push(last);
               if (socket && socket.connected) socket.emit('pizarra-undo');
               if (typeof pizarraRedraw === 'function') pizarraRedraw();
+            }
+          } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+            e.preventDefault();
+            if (typeof pizarraRedoStack !== 'undefined' && pizarraRedoStack.length > 0) {
+              var redoStroke = pizarraRedoStack.pop();
+              if (redoStroke) {
+                pizarraStrokesLocal.push(redoStroke);
+                if (socket && socket.connected) socket.emit('pizarra-redo', redoStroke);
+                if (typeof pizarraRedraw === 'function') pizarraRedraw();
+              }
             }
           }
         });
@@ -5190,6 +5433,10 @@ document.addEventListener("keydown", function(e) {
         if (toolEff === 'mano') {
           pizarraPanStart = { x: pt.x, y: pt.y };
           canvas.style.cursor = 'grabbing';
+        } else if (toolEff === 'puntero') {
+          pizarraDibujando = true;
+          pizarraPunteroPos = pizarraScreenToWorld(pt.x, pt.y);
+          pizarraRedraw();
         } else if (!pizarraClickDerechoActivo && esFiguraTool()) {
           pizarraDibujando = true;
           pizarraShapeStart = pizarraScreenToWorld(pt.x, pt.y);
@@ -5211,7 +5458,10 @@ document.addEventListener("keydown", function(e) {
         }
         if (!pizarraDibujando) return;
         var wpt = pizarraScreenToWorld(pt.x, pt.y);
-        if (esFiguraTool() && pizarraShapeStart) {
+        if (pizarraHerramienta === 'puntero') {
+          pizarraPunteroPos = wpt;
+          pizarraRedraw();
+        } else if (esFiguraTool() && pizarraShapeStart) {
           pizarraRedraw();
           var ctx = canvas.getContext('2d');
           ctx.save();
@@ -5268,9 +5518,16 @@ document.addEventListener("keydown", function(e) {
           pizarraPanStart = null;
           canvas.style.cursor = 'grab';
           return;
+        } else if (toolEff === 'puntero') {
+          if (!pizarraDibujando) return;
+          pizarraDibujando = false;
+          pizarraPunteroPos = null;
+          pizarraRedraw();
+          return;
         }
         if (!pizarraDibujando) return;
         pizarraDibujando = false;
+        pizarraRedoStack = [];
         if (esFiguraTool() && pizarraShapeStart && !pizarraClickDerechoActivo) {
           var pt = pizarraCoords(e);
           var wpt = pizarraScreenToWorld(pt.x, pt.y);
@@ -6186,7 +6443,7 @@ document.addEventListener("keydown", function(e) {
         if (!editorData || !editorData.editorInstance) return;
 
         const cm = editorData.editorInstance;
-        // Guardar posición de scroll ANTES de cambiar el contenido para que el otro usuario no salte de vista
+        // Guardar posición de scroll ANTES de cambiar el contenido
         const scrollInfo = cm.getScrollInfo ? cm.getScrollInfo() : null;
         const scrollTop = scrollInfo ? scrollInfo.top : 0;
         const scrollLeft = scrollInfo ? scrollInfo.left : 0;
@@ -6196,30 +6453,57 @@ document.addEventListener("keydown", function(e) {
         const cursor = cm.getCursor();
         const cambios = data.cambios || {};
         const from = cambios.from;
-        // Detectar reemplazo completo del documento (ej: usuario nuevo carga el mismo código)
-        // En ese caso NO ajustar cursor para no mandar al usuario existente a la última línea
-        const esReemplazoCompleto = from && from.line === 0 && from.ch === 0 &&
-          (lineasInsertadas >= (nuevoCodigo.split('\n').length - 1) || (cambios.to && cambios.to.line >= cm.lineCount() - 1));
+        const to = cambios.to;
+        const text = cambios.text;
         
-        // Ajustar nuestro cursor según inserción o borrado de líneas (solo en cambios incrementales)
+        // Detectar reemplazo completo (usuario nuevo carga código) - usar setValue
+        const esReemplazoCompleto = from && from.line === 0 && from.ch === 0 &&
+          (lineasInsertadas >= (nuevoCodigo.split('\n').length - 1) || (to && to.line >= cm.lineCount() - 1));
+        
+        // Aplicar cambio incremental con replaceRange para permitir edición simultánea
+        // (evita que setValue borre los cambios del usuario local cuando dos escriben a la vez)
+        let aplicadoIncremental = false;
+        if (!esReemplazoCompleto && from && to && text !== undefined && typeof from.line === 'number' && typeof to.line === 'number') {
+          const posFrom = { line: from.line, ch: from.ch || 0 };
+          const posTo = { line: to.line, ch: to.ch || 0 };
+          try {
+            const textStr = Array.isArray(text) ? text.join('\n') : String(text);
+            cm.replaceRange(textStr, posFrom, posTo);
+            editorData.codigo = cm.getValue();
+            aplicadoIncremental = true;
+          } catch (err) {
+            console.warn('Error aplicando cambio incremental, usando setValue:', err);
+          }
+        }
+        
+        if (!aplicadoIncremental) {
+          cm.setValue(nuevoCodigo);
+          editorData.codigo = nuevoCodigo;
+        }
+        
+        // Ajustar cursor según inserción o borrado de líneas (solo en cambios incrementales)
         let nuevoCursor = cursor;
-        if (!esReemplazoCompleto) {
+        if (!esReemplazoCompleto && !aplicadoIncremental) {
           if (lineaInsercion != null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
             nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
           } else if (lineaBorrado != null && lineasBorradas > 0 && cursor.line > lineaBorrado) {
             const nuevaLinea = Math.max(0, cursor.line - lineasBorradas);
             nuevoCursor = { line: nuevaLinea, ch: cursor.ch };
           }
+        } else if (aplicadoIncremental && (lineaInsercion != null || lineaBorrado != null)) {
+          if (lineaInsercion != null && lineasInsertadas > 0 && cursor.line > lineaInsercion) {
+            nuevoCursor = { line: cursor.line + lineasInsertadas, ch: cursor.ch };
+          } else if (lineaBorrado != null && lineasBorradas > 0 && cursor.line > lineaBorrado) {
+            nuevoCursor = { line: Math.max(0, cursor.line - lineasBorradas), ch: cursor.ch };
+          }
         }
-        
-        cm.setValue(nuevoCodigo);
-        // Asegurar que el cursor quede dentro del documento (p. ej. tras borrar líneas)
+        // Asegurar que el cursor quede dentro del documento
         const lineCount = cm.lineCount();
         const line = Math.min(nuevoCursor.line, Math.max(0, lineCount - 1));
         const lineLen = cm.getLine(line) ? cm.getLine(line).length : 0;
         const ch = Math.min(nuevoCursor.ch, lineLen);
         cm.setCursor({ line, ch });
-        editorData.codigo = nuevoCodigo;
+        editorData.codigo = aplicadoIncremental ? cm.getValue() : nuevoCodigo;
 
         // Restaurar scroll para que quien recibe la actualización no sea movido arriba/abajo
         if (scrollInfo && cm.scrollTo) {
@@ -6480,11 +6764,13 @@ document.addEventListener("keydown", function(e) {
       socket.on('pizarra-state', (data) => {
         if (typeof pizarraStrokesLocal !== 'undefined') {
           pizarraStrokesLocal = Array.isArray(data.strokes) ? data.strokes : [];
+          if (typeof pizarraRedoStack !== 'undefined') pizarraRedoStack = [];
           if (typeof pizarraRedraw === 'function') pizarraRedraw();
         }
       });
       socket.on('pizarra-stroke', (data) => {
         if (typeof pizarraStrokesLocal !== 'undefined' && data && data.points && data.points.length >= 2) {
+          if (typeof pizarraRedoStack !== 'undefined') pizarraRedoStack = [];
           pizarraStrokesLocal.push(data);
           if (typeof pizarraRedraw === 'function') pizarraRedraw();
         }
@@ -6492,12 +6778,20 @@ document.addEventListener("keydown", function(e) {
       socket.on('pizarra-clear', () => {
         if (typeof pizarraStrokesLocal !== 'undefined') {
           pizarraStrokesLocal = [];
+          if (typeof pizarraRedoStack !== 'undefined') pizarraRedoStack = [];
           if (typeof pizarraRedraw === 'function') pizarraRedraw();
         }
       });
       socket.on('pizarra-undo', () => {
         if (typeof pizarraStrokesLocal !== 'undefined' && pizarraStrokesLocal.length > 0) {
-          pizarraStrokesLocal.pop();
+          var last = pizarraStrokesLocal.pop();
+          if (last && typeof pizarraRedoStack !== 'undefined') pizarraRedoStack.push(last);
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
+      });
+      socket.on('pizarra-redo', (data) => {
+        if (typeof pizarraStrokesLocal !== 'undefined' && data) {
+          pizarraStrokesLocal.push(data);
           if (typeof pizarraRedraw === 'function') pizarraRedraw();
         }
       });
@@ -8438,7 +8732,13 @@ document.addEventListener("keydown", function(e) {
     { nombre: "vector", codigo: "int v[TF], TL = 0" },
     { nombre: "TF", codigo: "#define TF 100" },
     { nombre: "struct", codigo: "struct MiStruct {\n    \n};" },
-    { nombre: "switch ", codigo: "switch (variable) {\n    case valor 1:\n        \n        break;\n    default:\n        \n}" },
+    { nombre: "switch ", codigo: `
+swich(variable) {
+    case 1:
+        break;
+    default:
+        break;
+}`},
   { 
     nombre: "cargarVector", 
     codigo: "void cargarVector(int v[], int TL) {\n    for (int i = 0; i < TL; i++) {\n        cin >> v[i];\n    }\n}" 
