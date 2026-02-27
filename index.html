@@ -4955,6 +4955,51 @@ document.addEventListener("keydown", function(e) {
     }
 
     let pizarraPunteroPos = null;
+    let pizarraPunteroTrail = []; // recorrido mientras se mantiene click (solo local, no se guarda)
+    let pizarraPunteroRemoto = null; // { pos, trail } de otro usuario (coords mundo)
+    let pizarraPunteroLastEmit = 0;
+    const PIZARRA_PUNTERO_EMIT_INTERVAL = 50;
+
+    function pizarraDibujarPunteroLaser(ctx, pos, trail, enMundo) {
+      if (!pos && (!trail || trail.length === 0)) return;
+      var panX = 0, panY = 0, zoom = 1;
+      if (!enMundo) {
+        panX = pizarraPanX;
+        panY = pizarraPanY;
+        zoom = pizarraZoom;
+      }
+      ctx.save();
+      if (enMundo) {
+        ctx.translate(pizarraPanX, pizarraPanY);
+        ctx.scale(pizarraZoom, pizarraZoom);
+      }
+      // Rojo claro con sombra/glow
+      var radioPunto = 10;
+      var radioSombra = 24;
+      if (trail && trail.length >= 2) {
+        ctx.strokeStyle = 'rgba(255, 80, 80, 0.85)';
+        ctx.shadowColor = 'rgba(255, 0, 0, 0.75)';
+        ctx.shadowBlur = 12;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(trail[0].x, trail[0].y);
+        for (var i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+      if (pos) {
+        ctx.shadowColor = 'rgba(255, 0, 0, 0.9)';
+        ctx.shadowBlur = radioSombra;
+        ctx.fillStyle = '#ff6b6b';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, radioPunto, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
+    }
 
     function pizarraRedraw() {
       const canvas = document.getElementById('pizarra-canvas');
@@ -5039,16 +5084,13 @@ document.addEventListener("keydown", function(e) {
         for (var i = 1; i < pizarraCurrentStroke.length; i++) ctx.lineTo(pizarraCurrentStroke[i].x, pizarraCurrentStroke[i].y);
         ctx.stroke();
       }
-      // Dibujar puntero (no se guarda en strokes)
-      if (pizarraHerramienta === 'puntero' && pizarraPunteroPos) {
-        ctx.save();
-        ctx.translate(pizarraPanX, pizarraPanY);
-        ctx.scale(pizarraZoom, pizarraZoom);
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath();
-        ctx.arc(pizarraPunteroPos.x, pizarraPunteroPos.y, 8, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.restore();
+      // Dibujar puntero láser remoto (otro usuario)
+      if (pizarraPunteroRemoto) {
+        pizarraDibujarPunteroLaser(ctx, pizarraPunteroRemoto.pos, pizarraPunteroRemoto.trail, true);
+      }
+      // Dibujar puntero láser local (recorrido + punto, no permanente)
+      if (pizarraHerramienta === 'puntero' && (pizarraPunteroPos || (pizarraPunteroTrail && pizarraPunteroTrail.length > 0))) {
+        pizarraDibujarPunteroLaser(ctx, pizarraPunteroPos, pizarraPunteroTrail.length >= 2 ? pizarraPunteroTrail : null, true);
       }
 
       ctx.restore();
@@ -5435,8 +5477,13 @@ document.addEventListener("keydown", function(e) {
           canvas.style.cursor = 'grabbing';
         } else if (toolEff === 'puntero') {
           pizarraDibujando = true;
-          pizarraPunteroPos = pizarraScreenToWorld(pt.x, pt.y);
+          var wpt = pizarraScreenToWorld(pt.x, pt.y);
+          pizarraPunteroPos = wpt;
+          pizarraPunteroTrail = [wpt];
           pizarraRedraw();
+          if (socket && socket.connected) {
+            socket.emit('pizarra-puntero', { pos: wpt, trail: [wpt] });
+          }
         } else if (!pizarraClickDerechoActivo && esFiguraTool()) {
           pizarraDibujando = true;
           pizarraShapeStart = pizarraScreenToWorld(pt.x, pt.y);
@@ -5460,7 +5507,13 @@ document.addEventListener("keydown", function(e) {
         var wpt = pizarraScreenToWorld(pt.x, pt.y);
         if (pizarraHerramienta === 'puntero') {
           pizarraPunteroPos = wpt;
+          pizarraPunteroTrail.push(wpt);
           pizarraRedraw();
+          var now = Date.now();
+          if (socket && socket.connected && now - pizarraPunteroLastEmit >= PIZARRA_PUNTERO_EMIT_INTERVAL) {
+            pizarraPunteroLastEmit = now;
+            socket.emit('pizarra-puntero', { pos: wpt, trail: pizarraPunteroTrail.slice() });
+          }
         } else if (esFiguraTool() && pizarraShapeStart) {
           pizarraRedraw();
           var ctx = canvas.getContext('2d');
@@ -5520,8 +5573,13 @@ document.addEventListener("keydown", function(e) {
           return;
         } else if (toolEff === 'puntero') {
           if (!pizarraDibujando) return;
+          if (socket && socket.connected && pizarraPunteroTrail.length > 0) {
+            socket.emit('pizarra-puntero', { pos: null, trail: pizarraPunteroTrail.slice() });
+          }
           pizarraDibujando = false;
           pizarraPunteroPos = null;
+          pizarraPunteroTrail = [];
+          if (socket && socket.connected) socket.emit('pizarra-puntero-up');
           pizarraRedraw();
           return;
         }
@@ -6795,7 +6853,21 @@ document.addEventListener("keydown", function(e) {
           if (typeof pizarraRedraw === 'function') pizarraRedraw();
         }
       });
-      
+      socket.on('pizarra-puntero', (data) => {
+        if (typeof pizarraPunteroRemoto === 'undefined' || !data) return;
+        var trail = Array.isArray(data.trail) ? data.trail : (data.pos ? [data.pos] : []);
+        if (data.pos || trail.length > 0) {
+          pizarraPunteroRemoto = { pos: data.pos || null, trail: trail };
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
+      });
+      socket.on('pizarra-puntero-up', () => {
+        if (typeof pizarraPunteroRemoto !== 'undefined') {
+          pizarraPunteroRemoto = null;
+          if (typeof pizarraRedraw === 'function') pizarraRedraw();
+        }
+      });
+
       // Eventos modo profesor (recibir órdenes del profesor)
       socket.on('profesor-pizarra-abrir', () => {
         if (typeof pizarraAbierta !== 'undefined' && !pizarraAbierta && typeof togglePizarra === 'function') {

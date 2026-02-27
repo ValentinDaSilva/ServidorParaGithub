@@ -869,6 +869,13 @@ if (!fs.existsSync(tempDir)) {
       }
     });
 
+    socket.on('pizarra-puntero', (data) => {
+      socket.to('pizarra').emit('pizarra-puntero', { socketId: socket.id, pos: data.pos, trail: data.trail || [] });
+    });
+    socket.on('pizarra-puntero-up', () => {
+      socket.to('pizarra').emit('pizarra-puntero-up', { socketId: socket.id });
+    });
+
     // --- Modo profesor ---
     socket.on('profesor-pizarra-abrir', () => {
       io.emit('profesor-pizarra-abrir');
